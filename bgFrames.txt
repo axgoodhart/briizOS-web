@@ -1,0 +1,150 @@
+<style>
+/* Generic background-frame scaffold */
+:root {
+  --background-frame-zindex: -1;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #000; /* fallback if no frame */
+}
+
+.background-frame-container {
+  position: fixed;
+  inset: 0;
+  z-index: var(--background-frame-zindex);
+  pointer-events: none; /* keep UI interactive by default */
+  overflow: hidden;
+}
+
+.background-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: inherit;
+}
+
+[data-app-root] {
+  position: relative;
+  z-index: 0;
+}
+</style>
+--------------------------------------------------
+<html>
+  <body>
+    <div class="background-frame-container" id="background-frame-container">
+      <iframe
+        class="background-frame"
+        id="background-frame"
+        src="about:blank"
+        sandbox="allow-scripts"
+        loading="lazy"
+      ></iframe>
+    </div>
+
+    <div data-app-root>
+      <!-- Application UI goes here -->
+    </div>
+  </body>
+</html>
+--------------------------------------------------
+<script>
+(() => {
+  /**
+   * Generic controller for a sandboxed background iframe.
+   * Assumptions:
+   *   - Container exists (or will be created) with `id="background-frame-container"`.
+   *   - Frame exists (or will be created) with `id="background-frame"`.
+   *   - All behaviour is configured via the public API below.
+   */
+  const DEFAULTS = {
+    containerId: 'background-frame-container',
+    frameId: 'background-frame',
+    sandbox: 'allow-scripts',
+    pointerEvents: 'none',
+    initialSrc: 'about:blank'
+  };
+
+  const BackgroundFrame = (() => {
+    let container;
+    let frame;
+    let config = { ...DEFAULTS };
+
+    function ensureElements() {
+      container = container || document.getElementById(config.containerId);
+      frame = frame || document.getElementById(config.frameId);
+
+      if (!container) {
+        container = document.createElement('div');
+        container.id = config.containerId;
+        container.className = 'background-frame-container';
+        document.body.prepend(container);
+      }
+
+      if (!frame) {
+        frame = document.createElement('iframe');
+        frame.id = config.frameId;
+        frame.className = 'background-frame';
+        container.appendChild(frame);
+      }
+    }
+
+    function applyConfig(overrides = {}) {
+      config = { ...config, ...overrides };
+      ensureElements();
+      container.style.pointerEvents = config.pointerEvents;
+      frame.setAttribute('sandbox', config.sandbox);
+      frame.src = config.initialSrc;
+    }
+
+    function setSource(src, { reload = true } = {}) {
+      ensureElements();
+      if (!reload && frame.contentWindow && frame.src === src) return;
+      frame.src = src || 'about:blank';
+    }
+
+    function setSandbox(value) {
+      ensureElements();
+      frame.setAttribute('sandbox', value ?? '');
+    }
+
+    function setPointerEvents(value = 'none') {
+      ensureElements();
+      container.style.pointerEvents = value;
+      frame.style.pointerEvents = value;
+    }
+
+    function setFilters(cssFilter) {
+      ensureElements();
+      container.style.filter = cssFilter || 'none';
+    }
+
+    function destroy() {
+      if (frame?.parentNode === container) container.removeChild(frame);
+      if (container?.parentNode === document.body) document.body.removeChild(container);
+      frame = undefined;
+      container = undefined;
+      config = { ...DEFAULTS };
+    }
+
+    return {
+      init: (overrides = {}) => applyConfig(overrides),
+      configure: applyConfig,
+      setSource,
+      setSandbox,
+      setPointerEvents,
+      setFilters,
+      destroy
+    };
+  })();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => BackgroundFrame.init());
+  } else {
+    BackgroundFrame.init();
+  }
+
+  window.BackgroundFrame = BackgroundFrame;
+})();
+</script>

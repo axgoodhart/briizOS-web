@@ -1,0 +1,213 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">  <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+  <title>Liquid Effect</title>
+
+
+  <title>Liquid Effect</title>
+
+  <style>
+    html { font-size: 15px; }
+    html, body { margin: 0; padding: 0; min-height: 100%; background:teal;}
+    body { height:100%; display: flex; flex-direction: column; }
+    /* Extra values we can use if we decide we need more control in the future */
+
+html,
+body {
+    background:black;
+  overflow: hidden;
+  height: 100%;
+}
+
+.fullpage {
+  padding-bottom: 0;
+  margin: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+      -ms-flex-direction: column;
+          flex-direction: column;
+}
+.fullpage .main-header {
+  min-width: 0;
+}
+.fullpage .mobile-action-button {
+  display: block;
+  width: 48%;
+  float: left;
+  text-align: center;
+  margin: 0 4% 10px 0;
+}
+.fullpage .mobile-action-button:nth-child(even) {
+  margin-right: 0;
+}
+.fullpage .jump-view {
+  width: 48%;
+  margin: 0 4% 10px 0;
+  float: left;
+}
+.fullpage .jump-view:nth-child(even) {
+  margin-right: 0;
+}
+.fullpage .jump-view:nth-child(3) {
+  display: none;
+}
+.fullpage .jump-label {
+  display: block;
+}
+
+.oldie-header {
+  display: none;
+  padding: 5px;
+  background: var(--cp-color-20);
+  color: var(--cp-color-1);
+}
+html.oldie .oldie-header {
+  display: block;
+}
+
+html.oldie .main-header {
+  display: none;
+}
+
+#result-iframe-wrap {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 auto;
+      -ms-flex: 1 1 auto;
+          flex: 1 1 auto;
+  height: 100%;
+  position: relative;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+html.oldie #result-iframe-wrap {
+  /* stylelint-disable-next-line declaration-block-no-duplicate-properties */
+  height: 100%;
+  height: calc(100% - 32px);
+}
+
+#result {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+@media (max-width: 550px) {
+  @supports (height: 100svh) {
+    #result {
+      height: calc(100svh - var(--cp-header-height-small));
+    }
+  }
+}
+
+#pen-ad {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  -webkit-transform: translateX(-50%);
+          transform: translateX(-50%);
+  width: -webkit-fit-content;
+  width: -moz-fit-content;
+  width: fit-content;
+  z-index: 1;
+}
+  </style>
+</head>
+
+<body class="">
+
+  <div id="result-iframe-wrap" role="main">
+    <iframe
+      id="result"
+      srcdoc="<!DOCTYPE html>
+<html lang=&quot;en&quot; >
+
+<head>
+  <meta charset=&quot;UTF-8&quot;>
+  
+  
+
+
+  <title>Liquid Effect</title>
+
+  
+  
+  
+<style>
+body, html, #liquidapp {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  touch-action: none;
+}
+
+#liquidapp {
+  height: 100%;
+  font-family: &quot;Montserrat&quot;, serif;
+}
+
+#canvas {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  mix-blend-mode:darken;
+  opacity:.9;
+  overflow: hidden;
+}
+</style>
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+s
+<body translate=&quot;no&quot;>
+  <div id=&quot;liquidapp&quot;>
+  <canvas id=&quot;canvas&quot;></canvas>
+</div>
+  
+    <script id=&quot;rendered-js&quot; type=&quot;module&quot;>
+import LiquidBackground from 'https://cdn.jsdelivr.net/npm/threejs-components@0.0.22/build/backgrounds/liquid1.min.js';
+
+const liquidapp = LiquidBackground(document.getElementById('canvas'));
+
+liquidapp.loadImage('alexgoodhart/public/assets/art/alexart74.webp');
+liquidapp.liquidPlane.material.metalness = 1;
+liquidapp.liquidPlane.material.roughness = 0;
+liquidapp.liquidPlane.uniforms.displacementScale.value = 200;
+liquidapp.setRain(false);
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>
+"
+      sandbox="allow-downloads allow-forms allow-modals allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation-by-user-activation" allow="accelerometer *; bluetooth *; camera *; clipboard-read *; clipboard-write *; display-capture *; encrypted-media *; geolocation *; gyroscope *; language-detector *; language-model *; microphone *; midi *; rewriter *; serial *; summarizer *; translator *; web-share *; writer *; xr-spatial-tracking *" allowTransparency="true"
+      allowpaymentrequest="true" allowfullscreen="true" class="result-iframe">
+      </iframe>
+  </div>
+
+</body>
+
+</html>

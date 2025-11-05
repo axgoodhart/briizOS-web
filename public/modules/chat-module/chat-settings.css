@@ -1,0 +1,673 @@
+/* Chat Settings Panel - BriizOS AI Settings Styling */
+
+.cw-settings-container {
+  position:absolute;
+  bottom:0;
+  left:0;
+  width:100vw;
+  height:60vh;
+  z-index:9999;
+  display:none;
+  
+}
+
+.chat-settings-root {
+  position: fixed;
+  bottom:0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width:50vw;
+  height:60vh;
+  animation: fadeIn 0.2s ease;
+}
+
+.chat-settings-root.visible {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}/* Glass Panel */
+.chat-settings-panel {
+  border-radius: 40px 40px 20px 20px;
+  box-shadow: 0 8px 28px 0 rgba(0,0,0,0.6), 0 8px 40px 0 rgba(2, 90, 96, 0.3);
+  padding: 32px 44px 40px 44px;
+  background:rgba(0, 0, 0, 0.42);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid #3ec3e7;
+  width: 90%;
+  max-width: 1800px;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-wrap-mode:nowrap;
+  backdrop-filter:blur(8px);
+  padding-bottom:0px;
+  position:absolute;
+  bottom:0 !important;
+  left:0;
+  width:50vw;
+}
+
+/* Header */
+.cs-header-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.cs-logo {
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-size: 2.8rem;
+  color: #ffffff;
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(62, 195, 231, 0.5);
+}
+
+.cs-close-btn {
+  background: rgba(46, 195, 255, 0.2);
+  border: 2px solid #2ec3ff;
+  color: #e6ffff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.cs-close-btn:hover {
+  background: rgba(46, 195, 255, 0.4);
+  transform: scale(1.1);
+}
+
+/* Model Row */
+.cs-model-row {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.cs-label-model {
+  font-size: 2.8rem;
+  color: #30ff8f;
+  font-family: Hypatia Sans Pro, 'Montserrat', monospace;
+  text-shadow: 0 0 8px rgba(48, 255, 143, 0.6);
+}
+
+.cs-model-select {
+  position: relative;
+  font-family: Hypatia Sans Pro, 'VT323', monospace;
+  font-size: 2rem;
+  color: #30ff8f;
+  padding: 10px 18px;
+  background: #0b0b17;
+  border-radius: 28px;
+  border: 2px solid #2ec3ff;
+  box-shadow: 0 0 8px rgba(25, 216, 255, 0.5);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 230px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cs-selected-model {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-arrow {
+  font-size: 1.8rem;
+  color: #30ff8f;
+  transition: transform 0.2s;
+}
+
+.cs-model-select.open .cs-arrow {
+  transform: rotate(180deg);
+}
+
+.cs-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #0b0b17;
+  border: 2px solid #2ec3ff;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.6), 0 0 12px rgba(25, 216, 255, 0.3) inset;
+  display: none;
+  padding: 8px 0;
+  z-index: 10;
+}
+
+.cs-model-select.open .cs-dropdown {
+  display: block;
+}
+
+.cs-model-option {
+  padding: 10px 16px;
+  color: #cfffff;
+  font-family: Hypatia Sans Pro, 'VT323', monospace;
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cs-model-option:hover {
+  background: #122233;
+}
+
+.cs-model-option.active {
+  background: #16334b;
+  color: #30ff8f;
+}
+
+.cs-custom-model {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cs-custom-model input {
+  background: #0b0b17;
+  border: 2px solid #2ec3ff;
+  border-radius: 10px;
+  color: #cfffff;
+  padding: 8px 12px;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-size: 1rem;
+}
+
+.cs-custom-model button {
+  background: rgba(46, 195, 255, 0.2);
+  border: 2px solid #2ec3ff;
+  color: #e6ffff;
+  border-radius: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cs-custom-model button:hover {
+  background: rgba(46, 195, 255, 0.4);
+}
+/* Sliders */
+.cs-slider-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.cs-slider-group {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  align-items: center;
+  gap: 18px;
+}
+
+.cs-slider-group label {
+  font-size: 2.6rem;
+  color: #27ceff;
+  min-width: 200px;
+  font-family: Hypatia Sans Pro, 'VT323', monospace;
+  letter-spacing: 2px;
+}
+
+.cs-slider-group input[type=range] {
+  width: 100%;
+  accent-color: #3ea8ff;
+background:rgba(255,255,255,0.6);  height: .5px;
+  border-radius: 2px;
+  -webkit-appearance: none;
+}
+
+.cs-slider-group input[type=range]::-webkit-slider-track {
+  background: rgba(46, 195, 255, 0.2);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.cs-slider-group input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d58bff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 10px #ff94ff, 0 0 8px #fff;
+  cursor: pointer;
+}
+
+.cs-slider-group input[type=range]::-moz-range-track {
+  background: rgba(46, 195, 255, 0.2);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.cs-slider-group input[type=range]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d58bff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 10px #ff94ff, 0 0 8px #fff;
+  cursor: pointer;
+}
+
+.cs-slider-value {
+  font-size: 1.8rem;
+  color: #df95ff;
+  margin-left: 12px;
+  font-family: Hypatia Sans Pro, 'Montserrat', monospace;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Prompt */
+.cs-prompt-group {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 18px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.cs-prompt-group label {
+  font-size: 2.6rem;
+  color: #27ceff;
+  font-family: Hypatia Sans Pro, 'VT323', monospace;
+  letter-spacing: 2px;
+}
+
+.cs-prompt-group textarea {
+  min-height: 120px;
+  background: #0b0b17;
+  border: 2px solid #2ec3ff;
+  border-radius: 16px;
+  color: #e6ffff;
+  padding: 12px 14px;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-size: 1rem;
+  box-shadow: 0 0 8px rgba(25, 216, 255, 0.2) inset;
+  resize: vertical;
+}
+
+.cs-prompt-meta {
+  grid-column: 2;
+  color: #9bdcff;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Bottom Nav */
+.cs-bottom-nav {
+  margin-top: 1cap;
+  display: flex;
+  flex-direction:row;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 30px;
+  width: 50vw;
+  max-width: 900px;
+  height: 60px;
+  border-radius: 60px;
+  margin-left: auto;
+  margin-right: auto;
+  position:absolute;
+  top:-50px;
+  left:0;
+}
+
+.cs-nav-pill {
+  flex: 1;
+  font-size: 2.2rem;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-weight: 400;
+  color: #fff;
+  border: 1px solid rgba(183, 182, 182, 0.742);;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size:2rem;
+  border-radius:100px;
+  padding:10px;
+  background-blend-mode: overlay;;
+  transition: all 0.2s, font-weight 0.01s;
+  cursor: pointer;
+  text-align: center;
+}
+
+.cs-nav-pill.chatgpt {
+  background: linear-gradient(90deg, rgba(10, 211, 50, 0.6) 0%, rgba(57, 238, 196, 0.64) 100%);
+
+}
+
+.cs-nav-pill.gemini {
+  background: linear-gradient(90deg, rgba(25, 99, 219, 0.6) 0%, rgba(225, 31, 228, 0.6) 100%);
+
+}
+
+.cs-nav-pill.claude {
+  background: linear-gradient(90deg, rgba(208, 201, 0, 0.6) 0%, rgba(167, 188, 190, 0.6) 100%);
+
+}
+
+.cs-nav-pill.active {
+  transform: scale(1.05);
+font-weight:600;
+  color: yellow;
+  border-color:yellow;
+  text-transform: uppercase;background:rgba(0,0,0,.7);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(219, 251, 34, 0.7);
+  z-index: 1;
+}
+
+.cs-nav-pill:hover {
+  box-shadow: 0 0 12px rgba(62, 195, 231, 0.7);
+}
+
+/* History Panel */
+.cs-history-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(12,18,28,0.98) 0%, #000 100%);
+  border: 2px solid #3ec3e7;
+  border-radius: 40px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 20;
+}
+
+.cs-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 2px solid #12324a;
+}
+
+.cs-history-header h2 {
+  margin: 0;
+  color: #e6ffff;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  letter-spacing: 1px;
+  font-size: 2rem;
+}
+
+.cs-history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cs-hist-btn {
+  cursor: pointer;
+  border: 2px solid #2ec3ff;
+  color: #e6ffff;
+  background: #0b0b17;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.cs-hist-btn:hover {
+  background: rgba(46, 195, 255, 0.2);
+}
+
+.cs-hist-btn.ghost {
+  background: transparent;
+  border-color: rgba(46, 195, 255, 0.3);
+  color: #9bdcff;
+}
+
+.cs-hist-btn.primary {
+  background: rgba(46, 195, 255, 0.2);
+}
+
+.cs-hist-btn.danger {
+  border-color: #d0004d;
+  color: #ffd8e6;
+  background: rgba(208, 0, 77, 0.13);
+}
+
+.cs-hist-btn.danger:hover {
+  background: rgba(208, 0, 77, 0.3);
+}
+
+.cs-history-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #12324a;
+}
+
+.cs-history-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cs-chip {
+  border: 2px solid rgba(46, 195, 255, 0.3);
+  color: #cfffff;
+  background: #0b0b17;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.cs-chip:hover {
+  border-color: rgba(46, 195, 255, 0.6);
+}
+
+.cs-chip.active {
+  border-color: #2ec3ff;
+  box-shadow: 0 0 10px rgba(46, 195, 255, 0.3) inset;
+  background: rgba(46, 195, 255, 0.1);
+}
+
+.cs-history-search {
+  flex: 1;
+  min-width: 120px;
+  background: #0b0b17;
+  color: #e6ffff;
+  border: 2px solid rgba(46, 195, 255, 0.3);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+}
+
+.cs-history-list {
+  overflow: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.cs-history-empty {
+  color: #9bdcff;
+  opacity: 0.8;
+  padding: 32px;
+  text-align: center;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-size: 1.2rem;
+}
+
+.cs-history-card {
+  border: 1px solid #18364e;
+  border-radius: 14px;
+  background: #0b0b17;
+  box-shadow: 0 0 8px rgba(25, 216, 255, 0.13) inset;
+  padding: 14px;
+  transition: all 0.2s;
+}
+
+.cs-history-card:hover {
+  border-color: #2ec3ff;
+  box-shadow: 0 0 12px rgba(25, 216, 255, 0.25) inset;
+}
+
+.cs-hc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cs-hc-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.cs-hc-label {
+  color: #e6ffff;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1.1rem;
+}
+
+.cs-hc-sub {
+  color: #9bdcff;
+  font-size: 0.85rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+}
+
+.cs-hc-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cs-hc-params {
+  margin-top: 10px;
+  color: #df95ff;
+  font-size: 0.85rem;
+  font-family: Hypatia Sans Pro, 'Courier New', monospace;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .chat-settings-panel {
+    width: 95%;
+    padding: 24px 6vw;
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-settings-panel {
+    width: 100%;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .cs-logo {
+    font-size: 2rem;
+  }
+
+  .cs-model-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cs-label-model {
+    font-size: 2rem;
+  }
+
+  .cs-model-select {
+    width: 100%;
+  }
+
+  .cs-slider-group {
+    grid-template-columns: 140px 1fr auto;
+  }
+
+  .cs-slider-group label {
+    font-size: 1.8rem;
+    min-width: 140px;
+  }
+
+  .cs-prompt-group {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-prompt-group label {
+    grid-column: 1;
+  }
+
+  .cs-prompt-group textarea,
+  .cs-prompt-meta {
+    grid-column: 1;
+  }
+
+  .cs-nav-pill {
+    font-size: 1.6rem;
+    padding: 14px 0;
+  }
+
+  .cs-history-btn {
+    font-size: 1.6rem;
+    padding: 14px;
+  }
+}
+
+/* Scrollbar styling */
+.chat-settings-panel::-webkit-scrollbar,
+.cs-dropdown::-webkit-scrollbar,
+.cs-history-list::-webkit-scrollbar {
+display:none;}
+
+.chat-settings-panel::-webkit-scrollbar-track,
+.cs-dropdown::-webkit-scrollbar-track,
+.cs-history-list::-webkit-scrollbar-track {
+  background: rgba(11, 11, 23, 0.5);
+  border-radius: 4px;
+}
+
+.chat-settings-panel::-webkit-scrollbar-thumb,
+.cs-dropdown::-webkit-scrollbar-thumb,
+.cs-history-list::-webkit-scrollbar-thumb {
+  background: rgba(46, 195, 255, 0.4);
+  border-radius: 4px;
+}
+
+.chat-settings-panel::-webkit-scrollbar-thumb:hover,
+.cs-dropdown::-webkit-scrollbar-thumb:hover,
+.cs-history-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(46, 195, 255, 0.6);
+}

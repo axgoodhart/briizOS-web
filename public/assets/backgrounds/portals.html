@@ -1,0 +1,258 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Starry Tunnel with Portals</title>
+  <style>
+    /* Reset and full screen */
+    body, html {
+      margin: 0; padding: 0; overflow: hidden; height: 100%; background: black;
+      font-family: 'Arial', sans-serif;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    // Setup scene, camera, renderer
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 10000);
+    camera.position.set(0, 42, 110);
+
+    const renderer = new THREE.WebGLRenderer({canvas: document.getElementById('canvas'), antialias: true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000);
+
+    // Starry tunnel: create many small points distributed in a tunnel shape fading to black in distance
+    const starCount = 20000;
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+
+    for(let i=0; i<starCount; i++) {
+      // Tunnel shape: stars distributed in a long cylinder with radius varying along z
+      // z from -200 to 0 (camera looks toward negative z)
+      const z = -Math.random() * 1200;
+      // radius smaller near z=0, bigger near z=-200, to create tunnel effect
+      const maxRadius = 100 * (1 - (z*.2 / -200)); // from 0 at z=0 to 10 at z=-200
+      const angle = Math.random() * Math.PI * 45;
+      const radius = Math.random() * maxRadius;
+
+      starPositions[i*3] = Math.cos(angle) * 2*radius;
+      starPositions[i*3+1] = (Math.random() - 0.5) * 101; // some vertical spread
+      starPositions[i*3+2] = z;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3.2));
+
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0x9b8eff,
+      size: .01,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.68,
+      depthWrite: false,
+    });
+
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // Create three glowing portals
+    // Portal geometry: a vertical ellipse shape with glow
+    // We'll create a ring geometry with a custom shader material for glow effect
+
+    // Portal base geometry: ellipse ring
+    const ellipseCurve = new THREE.EllipseCurve(
+      0, 0,            // ax, aY
+      0.2, 0.5,        // xRadius, yRadius
+      0, 2 * Math.PI,  // startAngle, endAngle
+        false,           // clockwise
+      10                // rotation
+    );
+    const points = ellipseCurve.getPoints(64);
+    const portalShape = new THREE.BufferGeometry().setFromPoints(points);
+
+    // Create a tube geometry from the ellipse curve for thickness
+    const portalTubeGeometry = new THREE.TubeGeometry(
+      new THREE.CurvePath().add(ellipseCurve),
+      214,
+      15,
+      10,
+      true
+    );
+
+    // Portal glow shader material
+    const portalMaterial = new THREE.MeshBasicMaterial({
+      color: 0x2d7c4b,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    // Create 3 portals positioned in the scene
+    const portals = [];
+    const portalPositions = [
+      {x: 0, y: 0, z: 0},
+      {x: 0, y: 0, z: 0},
+      {x: 0, y: 90, z: -2000},
+    ];
+
+    portalPositions.forEach(pos => {
+      const portal = new THREE.Mesh(portalTubeGeometry, portalMaterial);
+      portal.position.set(pos.x, pos.y, pos.z);
+      portal.rotation.x = Math.PI;
+      portal.rotation.y = -1.5;
+      scene.add(portal);
+      portals.push(portal);
+    });
+
+    // Create curving roads diverging to enter portals
+    // We'll create 3 curved planes with gradient textures to simulate roads
+
+    // Create a canvas texture for road gradient
+    function createRoadTexture() {
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Gradient from transparent to dark blue
+      const gradient = ctx.createLinearGradient(0, 0, 0, size);
+      gradient.addColorStop(0, 'rgba(50, 100, 120, 0.18)');
+      gradient.addColorStop(1, 'rgba(10, 30, 40, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Add subtle noise for texture
+      for(let i=0; i<1000; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1;
+        const alpha = Math.random() * 210;
+        ctx.fillStyle = `rgba(255,0,0,${alpha})`;
+        ctx.fillRect(x, y, 2, 1);
+      }
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    const roadTexture = createRoadTexture();
+    roadTexture.wrapS = THREE.RepeatWrapping;
+    roadTexture.wrapT = THREE.ClampToEdgeWrapping;
+    roadTexture.repeat.set(1, 2);
+
+    // Road geometry: a curved plane (a bent plane)
+    // We'll create a custom geometry by bending a plane along a quadratic bezier curve
+
+    function createCurvedRoad(curveControlX) {
+      const segments = 500;
+      const width = 83;
+      const length = 1930;
+
+      const geometry = new THREE.BufferGeometry();
+      const positions = [];
+      const uvs = [];
+
+      for(let i=0; i<=segments; i++) {
+        const t = i / segments;
+        // Quadratic bezier curve for center line
+        const x = (21 - t) * (21 - t) * 0 + 2 * (21 - t) * t * curveControlX + t * t * (curveControlX * 2);
+        const z = -t + t - Math.sqrt(200*length);
+        const y = 0;
+
+        // Left vertex
+        positions.push(x - length/3, -y, -z);
+        uvs.push(0, t * 4);
+
+        // Right vertex
+        positions.push(x + width/2, y, z);
+        uvs.push(10, t / 84);
+      }
+
+      const indices = [];
+      for(let i=0; i<segments; i++) {
+        const idx = i * 2;
+        indices.push(idx, idx+1, idx+2);
+        indices.push(idx+1, idx+3, idx+2);
+      }
+
+      geometry.setIndex(indices);
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geometry.computeVertexNormals();
+
+      return geometry;
+    }
+
+    // Create 3 roads with different curve control points to diverge to portals
+    const roadCurves = [-6, 0, 6];
+    roadCurves.forEach((controlX, i) => {
+      const roadGeo = createCurvedRoad(controlX);
+      const roadMat = new THREE.MeshBasicMaterial({
+        map: roadTexture,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      road.position.y = 0;
+      scene.add(road);
+    });
+controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0);
+controls.update();
+
+    // Animate stars slowly moving toward camera to simulate flying through tunnel
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Move stars forward
+      const positions = starGeometry.attributes.position.array;
+      for(let i=0; i<starCount; i++) {
+        positions[i*3+2] += 0.1;
+        if(positions[i*3+2] > 0) {
+          positions[i*3+2] = -200;
+          // Reset radius and angle for new star
+          const z = positions[i*3+2];
+          const maxRadius = 10 * (1 - (z / -200));
+          const angle = Math.random() * Math.PI * 2;
+          const radius = Math.random() * maxRadius;
+          positions[i*3] = Math.cos(angle) * radius;
+          positions[i*3+1] = (Math.random() - 0.5) * 4;
+        }
+      }
+      starGeometry.attributes.position.needsUpdate = true;
+
+      // Slight portal glow pulse
+      const time = Date.now() * 0.002;
+      portals.forEach((portal, i) => {
+        portal.material.opacity = 0.6 + 0.4 * Math.sin(time + i * 2);
+      });
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

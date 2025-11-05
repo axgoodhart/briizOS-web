@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>briizOS Development Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&display=swap');
+
+
+
+
+
+        header{background:rgba(0,0,0,.42);border-radius:20px;justify-items:center;width:200%;transform:translateX(-25%)}
+header h1 {color:white; font-size:3rem;text-shadow:0 0 10px white, -4px 4px 10px black;}
+        html,body {
+            font-family: 'Afacad Flux', sans-serif;
+            background: linear-gradient(-2000deg,rgb(244, 255, 94) 0%, rgb(145, 201, 145), teal 8%, rgb(93, 151, 175) 10%, #766498 40%, rgb(200, 164, 93) 70%, rgb(111, 28, 28) 85%, rgb(246, 14, 14), yellow, skyblue, white);display:flex;overflow-x:hidden;background-size:cover;justify-content:center;justify-self:center;align-items:center;margin:0;padding:0;box-shadow:0 0 130px black inset;
+            color: #e0e0e0;
+        }
+        .logo {
+            display:inline-flex;
+            width:200px;
+            margin:0;padding:0;
+            border-radius:15px;
+            border:3px solid rgb(255, 244, 157);
+            box-shadow: 0 0 20px black;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+            padding:1rem;flex:10;
+            margin-left:2rem;
+            align-items: flex-start;
+        }
+
+        .glow-border {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.1), 0 0 5px rgba(118, 75, 162, 0.2);
+        }
+
+        .glass-pane {
+            background: rgba(26, 16, 44, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow:0 0 30px rgba(0,0,0,.7) inset, 0 0 120px black;
+            border:1px solid rgb(255, 255, 255);
+        }
+         
+        .prompt-card {
+            border-left: 2px solid rgba(0, 255, 204, 0.3);background-color:rgba(0,0,0,.6);
+            transition: all 0.3s ease;
+            border-bottom:20px solid black
+        }
+
+        .prompt-card:hover {
+            border-left-color: #00ffcc;
+        }
+
+        .file-drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        } 
+#prompt-card > p {color: green}
+
+
+
+        .file-drop-zone.dragover {
+            border-color: #00ffcc;
+            background-color: rgba(0, 255, 204, 0.1);
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .timeline-item {
+            position: relative;
+            border-bottom:.6px solid gray;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -35px;
+            top: 12px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            padding-top:4px;
+            background-color: rgba(128, 230, 255, 0.909);  box-shadow:0 0 10px blue;
+            border: 2px solid #1a102c;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-item.completed::before {
+            background-color: #ffffff;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+        
+        .roadmap-card {
+            min-height: 200px;
+        }
+    
+        
+        .feature-item {
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        .feature-item:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+            background-color: rgba(0, 255, 204, 0.2);
+        }
+        
+        .copy-btn {
+            transition: all 0.2s ease;
+        }
+        .copy-btn:active {
+            transform: scale(0.9);
+            color: #00ffcc;
+        }
+#phases-container{min-width:60vw;display:flex;flex-direction:column;position:relative;}
+#phases-container > div {
+    margin-bottom:100px;border-top:20px groove rgba(255, 255, 250, 0.8504);
+}
+
+prompt-card {border-bottom:10px black;}
+#phases-container > div > h3 {
+    font-size:30px;color:rgb(242, 242, 164);font-family:Astrid;text-transform:uppercase;text-align:center;margin-top:10px;margin-bottom:20px;text-shadow:-1px -2px 2px black;border-bottom:12px solid rgba(255, 255, 255, 0.696);border-radius:100px;padding-bottom:10px;}
+
+
+        #sidebardiv {border-right:50px groove white;margin-top:30px;height:91; font-weight:800;backdrop-filter:brightness(2)saturate(4);max-width:33vw;}
+.sidebardiv {font-size:3rem;letter-spacing:3px;text-shadow:-2px 2px 4px rgb(121, 201, 255); color: white;text-transform:uppercase;line-height:2.4rem;text-decoration:1px;margin-bottom:20px;text-align:center;}
+        #timeline-container {border-radius:12px;border:1.5px solid rgb(96, 175, 255);padding-top:10px;border-top:20px groove rgb(102, 120, 255);background:transparent;}
+        #timdiv {flex:3;position:absolute;right:20px;top:20%;}
+
+        @media (max-width: 768px) {
+            
+            .main-container {
+                grid-template-columns: 1fr; /* Display on a single column on mobile */
+            }
+
+            #timdiv {
+                display:none;
+            }
+             #phases-container{min-width:100%;display:flex;flex-direction:column;position:relative;};
+        }
+    </style>
+</head>
+<body>
+
+    <div class="p-8">
+        <header>
+            <div class="flex items-center space-x-4">
+                <img src="thelogo.png" alt="briizOS Logo" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/192x72/1a102c/e0e0e0?text=briizOS+Logo';">
+                <h1>Development Hub</h1>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <!-- Left Column: Phases and Timeline -->
+            <div class="space-y-8">
+                <div id="phases-container" >
+                    <!-- Phase sections will be generated here by JS -->
+                </div>
+            </div>
+
+            <!-- Right Column: Roadmap -->
+            <div class="sticky top-8" id="timdiv">
+                                <div class="glass-pane glow-border p-6" id="sidebardiv">
+                    <h2 class="sidebardiv">briiz.OS Timeline</h2>
+                    <div id="timeline-container" class="timeline">
+                        <!-- Timeline items will be generated here by JS -->
+                    </div>
+
+                <h2 class="text-2xl font-normal text-white text-center">Feature Roadmap</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <div id="planned-col" class="roadmap-col glass-pane glow-border p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg mb-3 text-center text-pink-300">Planned</h3>
+                        <div id="planned-features" class="space-y-2 min-h-[100px]"></div>
+                    </div>
+                    <div id="development-col" class="roadmap-col glass-pane glow-border p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg mb-3 text-center text-yellow-300">In Development</h3>
+                        <div id="development-features" class="space-y-2 min-h-[100px]"></div>
+                    </div>
+                    <div id="implemented-col" class="roadmap-col glass-pane glow-border p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg mb-3 text-center text-green-300">Implemented</h3>
+                        <div id="implemented-features" class="space-y-2 min-h-[100px]"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+                </div>
+
+
+    <script>
+        // --- DATA ---
+        // This is the single source of truth for the entire development plan.
+        const devPlan = {
+            roadmap: [
+                { id: 'feat-1', text: 'Native macOS App Container', status: 'planned', phase: 1 },
+                { id: 'feat-2', text: 'Apple Calendar API Bridge', status: 'planned', phase: 2 },
+                { id: 'feat-3', text: 'Native Calendar Data Fetch', status: 'planned', phase: 2 },
+                { id: 'feat-4', text: 'Canvas LMS API Service', status: 'planned', phase: 3 },
+                { id: 'feat-5', text: 'Canvas Data in Organizer', status: 'planned', phase: 3 },
+                { id: 'feat-6', text: 'AI Context Gathering', status: 'planned', phase: 4 },
+                { id: 'feat-7', text: 'AI Query & Response Handling', status: 'planned', phase: 4 },
+                { id: 'feat-8', text: 'AI DOM Manipulation', status: 'planned', phase: 4 },
+            ],
+            phases: [
+                {
+                    id: 1,
+                    title: "Phase 1: Porting to a Native macOS App Container",
+                    objective: "Get the existing web app running inside a native macOS window. This is the foundation for all native integrations.",
+                    prompts: [
+                        { id: 'p1-1', title: "Project Setup", type: 'directive', text: "Open Xcode, create a new macOS App project named 'briizOS', using Storyboard and Swift." },
+                        { id: 'p1-2', title: "Set up the WebView", type: 'prompt', text: "In my new macOS Swift project, I need to make my existing web app the main view. In the `ViewController.swift` file, please write the code to:\n1. Import the `WebKit` framework.\n2. Add a `WKWebView` that covers the entire application window.\n3. Make sure the WebView is private and doesn't store cache or data." },
+                        { id: 'p1-3', title: "Load the local HTML file", type: 'prompt', text: "Now, I need the WebView to load my local HTML file. My HTML file and all its assets will be in a folder named `web-assets` inside the Xcode project. Write the Swift code to load the main HTML file from this `web-assets` folder." }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: "Phase 2: Apple Calendar API Integration",
+                    objective: "Create a 'bridge' allowing your JavaScript to securely request and display data from the native Apple Calendar app.",
+                     prompts: [
+                        { id: 'p2-1', title: "Create the Swift-to-JS Bridge", type: 'prompt', text: "In my Swift `ViewController`, I need to establish a two-way bridge with my JavaScript. Write the Swift code to:\n1. Set up a `WKScriptMessageHandler` named `calendarBridge`.\n2. When a message is received from JavaScript, if the message is `'fetchEvents'`, it should call a new function named `getCalendarEvents()`.\n3. Create a separate Swift function that allows me to send data *back* to the JavaScript by calling a specific JavaScript function." },
+                        { id: 'p2-2', title: "Write the native Calendar function (Swift)", type: 'prompt', text: "Using the EventKit framework, write the Swift function `getCalendarEvents()`. This function must:\n1. Request permission from the user to access their Calendar.\n2. If permission is granted, fetch all calendar events for the next 7 days.\n3. Format the events into a simple data structure (e.g., an array of objects with `title`, `startDate`, and `endDate`).\n4. Use the bridge to send this array of events back to a JavaScript function called `handleNativeCalendarEvents(events)`." },
+                        { id: 'p2-3', title: "Write the front-end JavaScript", type: 'prompt', text: "In my main JavaScript file, I need to talk to the Swift bridge. Write the JavaScript code that:\n1. Defines the function `handleNativeCalendarEvents(events)` which will receive the event data from Swift and update my briizOS calendar UI.\n2. Defines a function `requestCalendarSync()` that sends the message `'fetchEvents'` to the native `calendarBridge`." }
+                    ]
+                },
+                 {
+                    id: 3,
+                    title: "Phase 3: Canvas LMS API Integration",
+                    objective: "Fetch and display class assignments directly within briizOS.",
+                    prompts: [
+                        { id: 'p3-1', title: "API Key Handling", type: 'directive', text: "Generate an API key from your Canvas Profile -> Settings. We will use a placeholder in the code for security." },
+                        { id: 'p3-2', title: "Create a Canvas API service", type: 'prompt', text: "In my JavaScript, create an object or class called `canvasService`. It needs one function called `getAssignments()`. This function should:\n1. Use `fetch` to make a GET request to the Canvas API endpoint for assignments.\n2. Use a placeholder variable `const CANVAS_API_KEY = 'YOUR_API_KEY_HERE'` for the authentication token.\n3. Include the API key in the `Authorization` header as a 'Bearer' token.\n4. Return the list of assignments as a JSON object." },
+                        { id: 'p3-3', title: "Integrate with the Organizer", type: 'prompt', text: "When my app loads, I want to fetch my Canvas assignments and display them in the Organizer. Write the JavaScript code to:\n1. Call the `canvasService.getAssignments()` function.\n2. For each assignment returned, create a new item in my `OrganizerStore`.\n3. The item `type` should be 'task', the `name` should be the assignment title, the `due` date should be the assignment's `due_at` field, and the `tag` should be 'school'." }
+                    ]
+                },
+                {
+                    id: 4,
+                    title: "Phase 4: In-OS Context-Aware AI",
+                    objective: "Create a conversational AI that can understand and manipulate the internal state of briizOS.",
+                    prompts: [
+                         { id: 'p4-1', title: "Create a 'Get State' function", type: 'prompt', text: "In my JavaScript, write a function called `getCurrentSystemState()`. This function should:\n1. Gather all active items from `OrganizerStore`.\n2. Fetch the current native calendar events (using the bridge from Phase 2).\n3. Format all of this data into a single, clean JSON string. This string represents the AI's 'world knowledge'." },
+                        { id: 'p4-2', title: "Create the AI query function", type: 'prompt', text: "Write a JavaScript function called `askGlosAI(prompt)`. This function should:\n1. First, call `getCurrentSystemState()` to get the current context.\n2. Send the user's `prompt` and the system state context to a powerful LLM API (e.g., Gemini).\n3. In the instruction to the LLM, tell it to *only* respond with a JSON object that defines an action to take, like `{'action': 'dom_manipulate', 'selector': '#someId', 'html': '<div>New Info</div>'}` or `{'action': 'alert', 'message': 'Conflict found'}`." },
+                        { id: 'p4-3', title: "Create an Action Router", type: 'prompt', text: "Write a JavaScript function called `executeAIAction(response)`. This function takes the JSON response from the LLM. It should use a `switch` statement on the `action` property.\n- If the action is `dom_manipulate`, it should use the `selector` and `html` properties to update the webpage.\n- If the action is `alert`, it should show the `message`.\n- If the action is `completeTask`, it should find the task in the `OrganizerStore` and mark it as done." }
+                    ]
+                }
+            ]
+        };
+
+        // --- STATE MANAGEMENT ---
+        let appState = {
+            completedPrompts: [],
+            fileReferences: {},
+            roadmap: [] 
+        };
+
+        const saveState = () => {
+            appState.roadmap = devPlan.roadmap; // Sync roadmap state before saving
+            localStorage.setItem('briizOSDevHubState', JSON.stringify(appState));
+        };
+
+        const loadState = () => {
+            const saved = localStorage.getItem('briizOSDevHubState');
+            if (saved) {
+                const parsedState = JSON.parse(saved);
+                appState = parsedState;
+                // If roadmap data exists in saved state, use it. Otherwise, use default.
+                if (appState.roadmap && appState.roadmap.length > 0) {
+                    devPlan.roadmap = appState.roadmap;
+                } else {
+                    appState.roadmap = devPlan.roadmap;
+                }
+            } else {
+                // First time load, initialize roadmap state
+                appState.roadmap = devPlan.roadmap;
+            }
+        };
+
+        // --- RENDERING FUNCTIONS ---
+
+        const renderRoadmap = () => {
+            const cols = {
+                planned: document.getElementById('planned-features'),
+                development: document.getElementById('development-features'),
+                implemented: document.getElementById('implemented-features'),
+            };
+            Object.values(cols).forEach(col => col.innerHTML = '');
+
+            devPlan.roadmap.forEach(feature => {
+                const featureEl = document.createElement('div');
+                featureEl.id = feature.id;
+                featureEl.className = 'feature-item bg-gray-800/50 p-2 rounded-md border border-gray-700/50 text-sm';
+                featureEl.textContent = feature.text;
+                featureEl.draggable = true;
+                
+                featureEl.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', feature.id);
+                    setTimeout(() => featureEl.classList.add('opacity-50'), 0);
+                });
+                
+                featureEl.addEventListener('dragend', () => {
+                    featureEl.classList.remove('opacity-50');
+                });
+
+                cols[feature.status].appendChild(featureEl);
+            });
+        };
+
+        const renderTimeline = () => {
+            const container = document.getElementById('timeline-container');
+            container.innerHTML = '';
+            devPlan.phases.forEach(phase => {
+                phase.prompts.forEach(prompt => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item pb-4';
+                    item.id = `timeline-${prompt.id}`;
+                    if (appState.completedPrompts.includes(prompt.id)) {
+                        item.classList.add('completed');
+                    }
+                    item.innerHTML = `<div class="font-medium text-white">${prompt.title}</div><div class="text-sm text-white-400">Phase ${phase.id}</div>`;
+                    container.appendChild(item);
+                });
+            });
+        };
+
+        const renderPhases = () => {
+            const container = document.getElementById('phases-container');
+            container.innerHTML = '';
+            devPlan.phases.forEach(phase => {
+                const phaseEl = document.createElement('div');
+                phaseEl.className = 'glass-pane glow-border p-6';
+                phaseEl.innerHTML = `
+                    <h3 class="text-xl font-semibold mb-1 text-teal-300">${phase.title}</h3>
+                    <p class="text-white-400 mb-6 text-sm">${phase.objective}</p>
+                    <div class="space-y-4">
+                        ${phase.prompts.map(prompt => `
+                            <div class="prompt-card bg-gray-900/30 p-4 rounded-lg" id="prompt-card-${prompt.id}">
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <input type="checkbox" id="checkbox-${prompt.id}" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-teal-500 focus:ring-teal-500" ${appState.completedPrompts.includes(prompt.id) ? 'checked' : ''}>
+                                        <h4 class="font-semibold text-lg text-white">${prompt.title}</h4>
+                                    </div>
+                                    ${prompt.type === 'prompt' ? `<button class="copy-btn text-white-400 hover:text-white" data-prompt-id="${prompt.id}"><i class="fas fa-copy"></i> Copy Prompt</button>` : ''}
+                                </div>
+                                <p class="text-white-300 whitespace-pre-wrap bg-black/20 p-3 rounded-md">${prompt.text}</p>
+                                <div class="mt-4">
+                                    <div id="drop-zone-${prompt.id}" class="file-drop-zone p-4 rounded-lg text-center text-white-400">
+                                        <div id="file-ref-${prompt.id}">
+                                            ${appState.fileReferences[prompt.id] ? `File Ref: ${appState.fileReferences[prompt.id]}` : 'Drop file here for version reference'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(phaseEl);
+            });
+        };
+
+        // --- EVENT HANDLERS & LOGIC ---
+
+        const handleCheckboxChange = (promptId, isChecked) => {
+            const timelineItem = document.getElementById(`timeline-${promptId}`);
+            if (isChecked) {
+                if (!appState.completedPrompts.includes(promptId)) {
+                    appState.completedPrompts.push(promptId);
+                }
+                timelineItem?.classList.add('completed');
+            } else {
+                appState.completedPrompts = appState.completedPrompts.filter(id => id !== promptId);
+                timelineItem?.classList.remove('completed');
+            }
+            saveState();
+        };
+
+        const handleCopyPrompt = (promptId) => {
+            const phase = devPlan.phases.find(p => p.prompts.some(pr => pr.id === promptId));
+            const prompt = phase?.prompts.find(pr => pr.id === promptId);
+            if (prompt) {
+                navigator.clipboard.writeText(prompt.text).then(() => {
+                    const btn = document.querySelector(`button[data-prompt-id="${promptId}"]`);
+                    const originalIcon = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check text-green-400"></i> Copied!';
+                    setTimeout(() => { btn.innerHTML = originalIcon; }, 2000);
+                });
+            }
+        };
+        
+        const setupDragAndDrop = () => {
+            devPlan.phases.forEach(phase => {
+                phase.prompts.forEach(prompt => {
+                    const dropZone = document.getElementById(`drop-zone-${prompt.id}`);
+                    const fileRefDisplay = document.getElementById(`file-ref-${prompt.id}`);
+
+                    dropZone.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        dropZone.classList.add('dragover');
+                    });
+                    dropZone.addEventListener('dragleave', () => {
+                        dropZone.classList.remove('dragover');
+                    });
+                    dropZone.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dropZone.classList.remove('dragover');
+                        if (e.dataTransfer.files.length > 0) {
+                            const file = e.dataTransfer.files[0];
+                            const fileRefText = `${file.name} (${new Date(file.lastModified).toLocaleDateString()})`;
+                            appState.fileReferences[prompt.id] = fileRefText;
+                            fileRefDisplay.textContent = `File Ref: ${fileRefText}`;
+                            saveState();
+                        }
+                    });
+                });
+            });
+            
+            // Roadmap drag and drop
+            const roadmapCols = document.querySelectorAll('.roadmap-col');
+            roadmapCols.forEach(col => {
+                col.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    col.classList.add('bg-gray-700/50');
+                });
+                col.addEventListener('dragleave', e => {
+                    col.classList.remove('bg-gray-700/50');
+                });
+                col.addEventListener('drop', e => {
+                    e.preventDefault();
+                    col.classList.remove('bg-gray-700/50');
+                    const featureId = e.dataTransfer.getData('text/plain');
+                    const feature = devPlan.roadmap.find(f => f.id === featureId);
+                    const newStatus = col.id.replace('-col', '');
+                    if (feature && feature.status !== newStatus) {
+                        feature.status = newStatus;
+                        saveState();
+                        renderRoadmap();
+                    }
+                });
+            });
+        };
+
+        const addEventListeners = () => {
+            document.body.addEventListener('change', e => {
+                if (e.target.type === 'checkbox' && e.target.id.startsWith('checkbox-')) {
+                    const promptId = e.target.id.replace('checkbox-', '');
+                    handleCheckboxChange(promptId, e.target.checked);
+                }
+            });
+
+            document.body.addEventListener('click', e => {
+                const copyBtn = e.target.closest('.copy-btn');
+                if (copyBtn) {
+                    handleCopyPrompt(copyBtn.dataset.promptId);
+                }
+            });
+        };
+
+        // --- INITIALIZATION ---
+        
+        const init = () => {
+            loadState();
+            renderRoadmap();
+            renderTimeline();
+            renderPhases();
+            addEventListeners();
+            setupDragAndDrop();
+        };
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

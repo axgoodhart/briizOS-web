@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beating Heart</title>
+    <link href="https://fonts.googleapis.com/css2?family=Adso&display=swap" rel="stylesheet">
+    <style>
+    </style>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000; 
+            display: flex;
+            overflow:hidden;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Adso', sans-serif;
+            color: white;
+            animation:body 2s ease forwards;
+        }
+
+        @keyframes body{
+            0%{filter:brightness(0)}
+        }
+
+        #logo {
+            font-family: 'Mighty Duck Demo', cursive;
+            font-size:3em;
+            position: absolute;
+            top: 35%;
+            left:5%;
+            mix-blend-mode:color-dodge;
+            overflow:visible;
+            text-align: center;
+            color: rgb(218, 0, 0);
+            font-weight:1000;
+            z-index:10000;
+        }
+
+        #heart-container {
+            position: absolute;
+            top: 0%;
+            width: 100%;
+            height: 50%;
+            mix-blend-mode:lighten;
+            pointer-events: none;
+        }
+
+        #menu {
+            display:none; 
+            flex-direction:column;
+            justify-content: space-around;
+            gap: 1em;
+            align-items:bottom;
+            position: absolute;
+            text-align:right;
+            top: 50%;
+            right:5%;
+            opacity:0;
+            transform:translateY(-50%);
+            width:fit-content;
+                         z-index:100000;
+            animation:menu 5s forwards;
+            font-size: 1.5em;
+            animation-delay:11s;
+        }
+
+        @keyframes menu {
+            0% {opacity: 0; color:black;-webkit-text-stroke:.5px red}
+            90%{ color:black;-webkit-text-stroke:.5px red}
+            100% {opacity: 1}
+
+        }
+
+        #menu a {
+            color: rgb(193, 0, 0);
+            transition:.03s;
+            text-decoration: none;
+            font-family: 'Adso', sans-serif;
+            font-size: 1.5em;
+        }
+
+        #menu a:hover {
+            text-decoration: underline;
+            color:black;
+            background:red;
+            -webkit-text-stroke:.5px rgb(108, 108, 108);}
+
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="heart-container"></div>
+    <div id="menu">
+        <a href="#">about/new</a>
+        <a href="#">projects+music</a>
+        <a href="#">poetry</a>
+        <a href="#">criticism</a>
+        <a href="#">students</a>
+        <a href="#">payments</a>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        const vertexShader = `
+            attribute float size;
+            varying vec3 vColor;
+            void main() {
+                vColor = color;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_PointSize = size * (200.0 / -mvPosition.z);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `;
+
+        const fragmentShader = `
+            varying vec3 vColor;
+            void main() {
+                float r = 0.0;
+                vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+                r = dot(cxy, cxy);
+                if (r > 1.0) {
+                    discard;
+                }
+                gl_FragColor = vec4(vColor, 1.0 - r);
+            }
+        `;
+
+        // Shape generators for different base shapes
+        const shapeGenerators = {
+            default: angle => {
+                const x = Math.pow(Math.sin(angle), 3);
+                const y = (13 * Math.cos(angle) - 3 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle));
+                return new THREE.Vector2(x, y);
+            },
+            circle: angle => new THREE.Vector2(Math.cos(angle), Math.sin(angle)),
+            spiral: angle => {
+                const r = angle / (2 * Math.PI);
+                return new THREE.Vector2(Math.cos(angle) * r, Math.sin(angle) * r);
+            },
+            star: angle => {
+                const r = Math.abs(Math.sin(5 * angle)) * 1.5 + 0.5;
+                return new THREE.Vector2(Math.cos(angle) * r, Math.sin(angle) * r);
+            }
+        };
+
+        class HeartSystem {
+            constructor(container, shapeFunction = shapeGenerators.default) {
+                this.shapeFunction = shapeFunction; 
+                this.init(container);
+                this.createParticles();
+                this.animate();
+            }
+
+            init(container) {
+                this.scene = new THREE.Scene();
+                
+                const aspect = window.innerWidth / window.innerHeight;
+                this.camera = new THREE.PerspectiveCamera(-875, aspect, 0.1, 1000);
+                this.camera.position.z = -0;
+                this.camera.position.y = 1;
+                this.camera.lookAt(0,-2,100);
+
+                this.renderer = new THREE.WebGLRenderer({ 
+                    antialias: true, 
+                    alpha: true
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x000000, 1);
+                container.appendChild(this.renderer.domElement);
+
+                window.addEventListener('resize', () => {
+                    const aspect = window.innerWidth / window.innerHeight;
+                    this.camera.aspect = aspect;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                this.clock = new THREE.Clock();
+                this.animationTime = 0;
+            }
+
+            calculateHeartPoint(angle) {
+                return this.shapeFunction(angle);
+            }
+
+            generateHeartPoints() {
+                const points = [];
+                const scales = [
+                    { scale: 1, count: 100 },  // Main outline
+                    { scale: 2.5, count: 40 },  // Inner detail
+                    { scale: 12, count: 30 },  // More inner detail
+                    { scale: 20, count: 400 }   // Center fill
+                ];
+
+                scales.forEach(({ scale, count }) => {
+                    for (let i = 0; i < count; i++) {
+                        const angle = (i / count) * Math.PI * 2;
+                        const point = this.calculateHeartPoint(angle);
+                        points.push({
+                            position: new THREE.Vector3(
+                                point.x * scale*200,
+                                point.y * scale * 0.1 + 10,
+                                0
+                            ),
+                            basePosition: new THREE.Vector3(
+                                point.x * scale*10,
+                                point.y * scale *1.5 * 0.1 + 10,
+                                0
+                            ),
+                            velocity: new THREE.Vector3(
+                                (Math.random() + 0.04) * 10,
+                                (Math.random() - 0.5) * 10,
+                                (Math.random() - 0.5) * 10,
+                            ),
+                            offset: Math.random() * Math.PI * 120,
+                            speed: .2221  // Individual particle speed
+                        });
+                    }
+                });
+
+                return points;
+            }
+
+            createParticles() {
+                this.particleData = this.generateHeartPoints();
+                const particleCount = this.particleData.length;
+                
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+                const sizes = new Float32Array(particleCount);
+
+                for (let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
+                    const point = this.particleData[i].position;
+                    
+                    positions[i3] = point.x;
+                    positions[i3 + 1] = point.y;
+                    positions[i3 + 2] = point.z;
+
+                    colors[i3] = .1;      // R
+                    colors[i3 + 1] = 0;  // G
+                    colors[i3 + 2] = 0;  // B
+
+                    sizes[i] = 1.5 + Math.random() * 1.5;
+                }
+
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+                const material = new THREE.ShaderMaterial({
+                    uniforms: {},
+                    vertexShader: vertexShader,
+                    fragmentShader: fragmentShader,
+                    blending: THREE.AdditiveBlending,
+                    depthTest: false,
+                    transparent: false,
+                    vertexColors: true
+                });
+
+                this.particles = new THREE.Points(geometry, material);
+                this.scene.add(this.particles);
+            }
+
+            updateParticles(deltaTime) {
+                // Rotation
+                this.particles.rotation.y += deltaTime * .03;
+                this.camera.position.y += deltaTime /2000;
+
+                // Heart beat scale
+                const heartScale = 1 + Math.sin(this.animationTime * 20) * 1;
+
+                const positions = this.particles.geometry.attributes.position.array;
+                
+                // Update each particle
+                for (let i = 0; i < this.particleData.length; i++) {
+                    const i3 = i * 10;
+                    const particle = this.particleData[i];
+                    
+                    // Add swirling motion with individual speed
+                    const time = this.animationTime - particle.offset;
+                    const swirl = new THREE.Vector3(
+                        Math.sin(time * 1) * 1.5,  // Increased amplitude
+                        Math.cos(time * 1) * 1.5,
+                        Math.sin(time * 1) * 1.5
+                    );
+
+                    // Add random movement
+                    particle.velocity.add(new THREE.Vector3(
+                        (Math.random() - 0.5) * .3,  // Increased random movement
+                        (Math.random() - 0.5) * .3,
+                        (Math.random() - 0.5) * .3
+                    ));
+
+                    // Apply velocity with gentler damping
+                    particle.velocity.multiplyScalar(0.97);  // Adjusted damping
+
+                    // Calculate new position with swirl and velocity
+                    const newPos = particle.basePosition.clone()
+                        .add(swirl)
+                        .add(particle.velocity)
+                        .multiplyScalar(heartScale);
+
+                    // Add attraction to base position
+                    const attraction = particle.basePosition.clone()
+                        .sub(new THREE.Vector3(positions[i3], positions[i3 + 1], positions[i3 + Math.random()+0.1]))
+                        .multiplyScalar(0.1);  // Attraction strength
+                    
+                    particle.velocity.add(attraction);
+
+                    // Update position
+                    positions[i3] = newPos.x;
+                    positions[i3 + 1] = newPos.y;
+                    positions[i3 + 2] = newPos.z;
+                }
+
+                this.particles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            animate() {
+                const deltaTime = this.clock.getDelta()*9;
+                this.animationTime = deltaTime;
+
+                this.updateParticles(deltaTime);
+                this.renderer.render(this.scene, this.camera);
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const heartContainer = document.getElementById('heart-container');
+            let heartSystem = new HeartSystem(heartContainer);
+
+            document.querySelectorAll('#menu a').forEach((link, index) => {
+                const shapes = ['default', 'circle', 'spiral', 'star'];
+                link.addEventListener('mouseenter', () => {
+                    heartContainer.innerHTML = '';
+                    heartSystem = new HeartSystem(heartContainer, shapeGenerators[shapes[index % shapes.length]]);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

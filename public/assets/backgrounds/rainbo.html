@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>Tubes Cursor (WebGL, WebGPU)</title>
+
+<style>
+body, html, #app {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow:hidden;
+  background:black;
+  box-shadow:inset 0 0 20px black;
+  
+}
+
+html{  filter:contrast(1.2)saturate(.78);;transform:scale(4);hue-rotate(200deg);
+animation:animated 100s;
+}
+
+
+@keyframes animated {
+0% {transform:scale(6);filter:hue-rotate(0deg);}
+5% {transform:scale(3);filter:hue-rotate(180deg);}
+100% {transform:scale(1);filter:hue-rotate(360deg);}
+
+}
+
+
+body {
+  touch-action: none;
+}
+
+#app {
+  height: 100%;
+  font-family: "Montserrat", serif;
+}
+
+#app a {
+  text-decoration: none;
+  color: #fff;
+}
+
+h1, h2, p {
+  margin: 0;
+  padding: 0;
+  color: white;
+  text-shadow: 0 0 20px rgba(0, 0, 0, 1);
+  line-height: 100%;
+  user-select: none;
+}
+
+h1 {
+  font-size: 80px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-size: 60px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+#canvas {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+}
+</style>
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <div id="app">
+  <canvas id="canvas"></canvas>
+</div>
+  
+    <script id="rendered-js" type="module">
+import TubesCursor from "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js";
+
+const app = TubesCursor(document.getElementById('canvas'), {
+  tubes: {
+    colors: ["#f967fb", "#53bc28", "#6958d5"],
+    lights: {
+      intensity: 10,
+      colors: ["#83f36e", "#fe8a2e", "#ff008a", "#60aed5"] } } });
+
+
+
+
+document.body.addEventListener('click', () => {
+  const colors = randomColors(1);
+  const lightsColors = randomColors(1);
+  console.log(colors, lightsColors);
+  app.tubes.setColors(colors);
+  app.tubes.setLightsColors(lightsColors);
+});
+
+function randomColors(count) {
+  return new Array(count).
+  fill(0).
+  map(() => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'));
+}
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

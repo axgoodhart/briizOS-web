@@ -1,0 +1,440 @@
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+    }
+    canvas {
+        display: block;
+    }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+<script>
+    let particles = [];
+    let trailParticles = [];
+    let flowLines = [];
+    let scale = 1;
+    
+    class Particle {
+        constructor(x, y, type = 'normal') {
+            this.x = x;
+            this.y = y;
+            this.vx = random(-0.5, 0.5);
+            this.vy = random(-0.5, 0.5);
+            this.life = type === 'trail' ? 150 : 255;
+            this.maxLife = this.life;
+            this.size = type === 'trail' ? random(0.5, 1.5) : random(1, 3);
+            this.type = type;
+        }
+        
+        update(time) {
+            const angle = noise(this.x * 0.01, this.y * 0.01, time * 0.1) * TWO_PI * 2;
+            this.vx += cos(angle) * 0.1;
+            this.vy += sin(angle) * 0.1;
+            
+            this.vx *= 0.95;
+            this.vy *= 0.95;
+            
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            this.life -= this.type === 'trail' ? 2 : 1;
+        }
+        
+        display() {
+            const alpha = map(this.life, 0, this.maxLife, 0, this.type === 'trail' ? 100 : 255);
+            stroke(255, alpha);
+            strokeWeight(this.size * scale);
+            point(this.x, this.y);
+            
+            if (this.type === 'normal' && this.life > 200) {
+                noStroke();
+                fill(255, alpha * 0.3);
+                circle(this.x, this.y, this.size * 3 * scale);
+            }
+        }
+        
+        isDead() {
+            return this.life <= 0;
+        }
+    }
+    
+    class FlowLine {
+        constructor(index, total) {
+            this.index = index;
+            this.offset = (index / total) * TWO_PI;
+            this.points = 150;
+            this.amplitude = random(60, 120) * scale;
+            this.frequency = random(2, 4);
+        }
+        
+        display(time) {
+            noFill();
+            stroke(255, 40);
+            strokeWeight(1.2 * scale);
+            
+            beginShape();
+            for (let i = 0; i < this.points; i++) {
+                const t = i / this.points;
+                const x = map(t, 0, 1, -width / 2, width / 2);
+                
+                const wave1 = sin(t * PI * this.frequency + time + this.offset) * this.amplitude;
+                const wave2 = cos(t * PI * (this.frequency * 0.5) - time * 0.7 + this.offset) * this.amplitude * 0.5;
+                const wave3 = sin(t * PI * 8 + time * 2 + this.offset) * this.amplitude * 0.2;
+                const envelope = sin(t * PI);
+                
+                const y = (wave1 + wave2 + wave3) * envelope;
+                
+                vertex(x, y);
+            }
+            endShape();
+        }
+    }
+    
+    function setup() {
+        createCanvas(windowWidth, windowHeight);
+        background(0);
+        updateScale();
+        initializeFlowLines();
+    }
+    
+    function updateScale() {
+        const baseSize = 1000;
+        scale = min(width, height) / baseSize;
+    }
+    
+    function initializeFlowLines() {
+        flowLines = [];
+        for (let i = 0; i < 20; i++) {
+            flowLines.push(new FlowLine(i, 20));
+        }
+    }
+    
+    function draw() {
+        background(0, 25);
+        translate(width / 2, height / 2);
+        
+        const time = frameCount * 0.01;
+        
+        for (let i = 0; i < 6; i++) {
+            const ringRadius = (350 + i * 60) * scale;
+            const segments = 200;
+            
+            noFill();
+            stroke(255, 8 - i);
+            strokeWeight(0.5 * scale);
+            
+            beginShape();
+            for (let j = 0; j <= segments; j++) {
+                const angle = map(j, 0, segments, 0, TWO_PI);
+                const wave = sin(angle * 12 + time + i * 0.5) * 5 * scale;
+                const r = ringRadius + wave;
+                vertex(cos(angle) * r, sin(angle) * r);
+            }
+            endShape(CLOSE);
+        }
+        
+        const numRibbons = 12;
+        for (let i = 0; i < numRibbons; i++) {
+            const xOffset = map(i, 0, numRibbons - 1, -width / 2.5, width / 2.5);
+            
+            push();
+            translate(xOffset, 0);
+            
+            noFill();
+            stroke(255, 20);
+            strokeWeight(2 * scale);
+            
+            beginShape();
+            for (let y = -height / 2; y < height / 2; y += 4) {
+                const wave1 = sin(y * 0.02 + time * 2 + i) * 40 * scale;
+                const wave2 = cos(y * 0.01 - time + i * 0.5) * 20 * scale;
+                const wave3 = sin(y * 0.04 + time * 3 + i * 0.3) * 10 * scale;
+                vertex(wave1 + wave2 + wave3, y);
+            }
+            endShape();
+            
+            stroke(255, 10);
+            strokeWeight(0.8 * scale);
+            beginShape();
+            for (let y = -height / 2; y < height / 2; y += 4) {
+                const wave1 = sin(y * 0.02 + time * 2 + i) * 40 * scale;
+                const wave2 = cos(y * 0.01 - time + i * 0.5) * 20 * scale;
+                const wave3 = sin(y * 0.04 + time * 3 + i * 0.3) * 10 * scale;
+                vertex(wave1 + wave2 + wave3 + 15 * scale, y);
+            }
+            endShape();
+            pop();
+        }
+        
+        for (let line of flowLines) {
+            line.display(time);
+        }
+        
+        const numShapes = 8;
+        for (let i = 0; i < numShapes; i++) {
+            const angle = (i / numShapes) * TWO_PI + time * 0.3;
+            const radius = 220 * scale + sin(time * 2 + i) * 50 * scale;
+            
+            const x = cos(angle) * radius;
+            const y = sin(angle) * radius;
+            
+            noFill();
+            stroke(255, 5);
+            strokeWeight(0.3 * scale);
+            const orbitRadius = 220 * scale + sin(time * 2 + i) * 50 * scale;
+            circle(0, 0, orbitRadius * 2);
+            
+            push();
+            translate(x, y);
+            rotate(time * 0.5 + i);
+            
+            noFill();
+            stroke(255, 70);
+            strokeWeight(1.5 * scale);
+            
+            const sides = 6;
+            const shapeSize = 25 * scale + sin(time * 3 + i) * 5 * scale;
+            
+            beginShape();
+            for (let j = 0; j < sides; j++) {
+                const a = (j / sides) * TWO_PI;
+                vertex(cos(a) * shapeSize, sin(a) * shapeSize);
+            }
+            endShape(CLOSE);
+            
+            stroke(255, 50);
+            strokeWeight(1 * scale);
+            beginShape();
+            for (let j = 0; j < sides; j++) {
+                const a = (j / sides) * TWO_PI;
+                vertex(cos(a) * shapeSize * 0.65, sin(a) * shapeSize * 0.65);
+            }
+            endShape(CLOSE);
+            
+            stroke(255, 35);
+            strokeWeight(0.8 * scale);
+            beginShape();
+            for (let j = 0; j < sides; j++) {
+                const a = (j / sides) * TWO_PI;
+                vertex(cos(a) * shapeSize * 0.35, sin(a) * shapeSize * 0.35);
+            }
+            endShape(CLOSE);
+            
+            stroke(255, 80);
+            strokeWeight(2.5 * scale);
+            for (let j = 0; j < sides; j++) {
+                const a = (j / sides) * TWO_PI;
+                point(cos(a) * shapeSize, sin(a) * shapeSize);
+            }
+            
+            pop();
+        }
+        
+        push();
+        rotate(time * 0.2);
+        
+        const vortexLayers = 18;
+        for (let i = 0; i < vortexLayers; i++) {
+            const layerRadius = (25 + i * 10) * scale;
+            const segments = 80;
+            
+            noFill();
+            stroke(255, 60 - i * 2.5);
+            strokeWeight((2 - i * 0.08) * scale);
+            
+            beginShape();
+            for (let j = 0; j <= segments; j++) {
+                const angle = map(j, 0, segments, 0, TWO_PI);
+                const spiral = angle * 0.3;
+                const wave = sin(angle * 4 - time * 2 + i * 0.3) * 8 * scale;
+                const r = layerRadius + wave;
+                
+                const x = cos(angle + spiral * i * 0.1) * r;
+                const y = sin(angle + spiral * i * 0.1) * r;
+                
+                vertex(x, y);
+            }
+            endShape(CLOSE);
+        }
+        
+        noStroke();
+        for (let i = 3; i > 0; i--) {
+            fill(255, 30 / i);
+            circle(0, 0, i * 15 * scale);
+        }
+        
+        pop();
+        
+        if (frameCount % 1 === 0) {
+            for (let i = 0; i < 3; i++) {
+                const angle = random(TWO_PI);
+                const speed = random(1, 3);
+                const px = cos(angle) * 30 * scale;
+                const py = sin(angle) * 30 * scale;
+                particles.push(new Particle(px, py, 'normal'));
+            }
+            
+            for (let i = 0; i < 2; i++) {
+                const angle = random(TWO_PI);
+                const px = cos(angle) * 30 * scale;
+                const py = sin(angle) * 30 * scale;
+                trailParticles.push(new Particle(px, py, 'trail'));
+            }
+        }
+        
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update(time);
+            particles[i].display();
+            
+            if (particles[i].isDead()) {
+                particles.splice(i, 1);
+            }
+        }
+        
+        for (let i = trailParticles.length - 1; i >= 0; i--) {
+            trailParticles[i].update(time);
+            trailParticles[i].display();
+            
+            if (trailParticles[i].isDead()) {
+                trailParticles.splice(i, 1);
+            }
+        }
+        
+        if (particles.length > 350) {
+            particles.splice(0, particles.length - 350);
+        }
+        if (trailParticles.length > 200) {
+            trailParticles.splice(0, trailParticles.length - 200);
+        }
+        
+        for (let i = 0; i < 5; i++) {
+            const ringRadius = (130 + i * 70) * scale;
+            const pulse = sin(time * 2 - i * 0.5) * 10 * scale;
+            
+            noFill();
+            stroke(255, 18 - i * 2);
+            strokeWeight(1 * scale);
+            
+            circle(0, 0, (ringRadius + pulse) * 2);
+            
+            if (i % 2 === 0) {
+                const nodeCount = 8;
+                stroke(255, 30);
+                strokeWeight(2 * scale);
+                for (let j = 0; j < nodeCount; j++) {
+                    const nodeAngle = (j / nodeCount) * TWO_PI + time * 0.5;
+                    const nx = cos(nodeAngle) * (ringRadius + pulse);
+                    const ny = sin(nodeAngle) * (ringRadius + pulse);
+                    point(nx, ny);
+                }
+            }
+        }
+        
+        const beamCount = 16;
+        for (let i = 0; i < beamCount; i++) {
+            const angle = (i / beamCount) * TWO_PI + time * 0.15;
+            
+            push();
+            rotate(angle);
+            
+            noFill();
+            stroke(255, 15);
+            strokeWeight(0.8 * scale);
+            
+            beginShape();
+            for (let d = 50; d < 250; d += 3) {
+                const dist = d * scale;
+                const wave = sin(dist * 0.03 + time * 4) * 8 * scale;
+                const alpha = map(d, 50, 250, 20, 5);
+                stroke(255, alpha);
+                vertex(wave, dist);
+            }
+            endShape();
+            pop();
+        }
+        
+        const cornerLines = 4;
+        for (let i = 0; i < cornerLines; i++) {
+            const angle = (i / cornerLines) * TWO_PI + PI / 4;
+            
+            push();
+            rotate(angle);
+            
+            noFill();
+            stroke(255, 25);
+            strokeWeight(1.2 * scale);
+            
+            beginShape();
+            for (let d = 250; d < 450; d += 2) {
+                const dist = d * scale;
+                const wave = sin(dist * 0.02 + time * 3) * 18 * scale;
+                vertex(wave, dist);
+            }
+            endShape();
+            
+            stroke(255, 12);
+            strokeWeight(0.6 * scale);
+            beginShape();
+            for (let d = 250; d < 450; d += 2) {
+                const dist = d * scale;
+                const wave = sin(dist * 0.02 + time * 3) * 18 * scale;
+                vertex(wave + 10 * scale, dist);
+            }
+            endShape();
+            
+            pop();
+        }
+        
+        stroke(255, 10);
+        strokeWeight(0.6 * scale);
+        for (let i = 0; i < numShapes; i++) {
+            const angle1 = (i / numShapes) * TWO_PI + time * 0.3;
+            const radius1 = 220 * scale + sin(time * 2 + i) * 50 * scale;
+            const x1 = cos(angle1) * radius1;
+            const y1 = sin(angle1) * radius1;
+            
+            const nextIndex = (i + 1) % numShapes;
+            const angle2 = (nextIndex / numShapes) * TWO_PI + time * 0.3;
+            const radius2 = 220 * scale + sin(time * 2 + nextIndex) * 50 * scale;
+            const x2 = cos(angle2) * radius2;
+            const y2 = sin(angle2) * radius2;
+            
+            line(x1, y1, x2, y2);
+            
+            if (i % 2 === 0) {
+                stroke(255, 5);
+                strokeWeight(0.4 * scale);
+                line(x1, y1, 0, 0);
+            }
+        }
+        
+        for (let h = 0; h < 2; h++) {
+            push();
+            rotate(h * PI);
+            
+            noFill();
+            stroke(255, 20);
+            strokeWeight(0.8 * scale);
+            
+            beginShape();
+            for (let i = 0; i < 100; i++) {
+                const t = i / 100;
+                const angle = t * TWO_PI * 3 + time;
+                const dist = 150 * scale;
+                const x = cos(angle) * dist;
+                const y = map(t, 0, 1, -height / 4, height / 4);
+                vertex(x, y);
+            }
+            endShape();
+            
+            pop();
+        }
+    }
+    
+    function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+        updateScale();
+        initializeFlowLines();
+    }
+</script>
