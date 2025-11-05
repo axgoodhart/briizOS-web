@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Sky Gradient</title>
+    <!-- Load Tailwind CSS for styling the text overlay -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /*
+          We define the default colors here.
+          The JS will override these variables based on the time of day.
+        */
+        :root {
+            --sky-color: #0284c7;       /* Default: bright blue */
+            --horizon-color: #7dd3fc;  /* Default: light blue */
+            --glow-color: #e0f2fe;     /* Default: white-blue glow */
+        }
+
+        html {
+            height: 100%;
+            animation:pageblink 1800s linear infinite;
+
+        }
+
+        body {
+            background-image: 
+                radial-gradient(ellipse at 50% 100%, var(--glow-color) 0%, transparent 70%), 
+                linear-gradient(to bottom, var(--sky-color) 0%, var(--horizon-color) 100%);
+  
+            background-color: var(--sky-color);
+            background-repeat: no-repeat;
+            background-attachment: fixed; /* Ensures the gradient covers the whole viewport */
+            height: 100%;
+            margin: 0;
+            transition: background-color 3s ease-in-out;
+        }
+@keyframes pageblink {
+    0% {filter:saturate(1)contrast(1.3)hue-rotate(0deg);}
+    .3%, 1.2% {filter:saturate(2)contrast(10)hue-rotate(360deg);}
+    1.25% {filter:saturate(1.3)contrast(2)hue-rotate(180deg);}
+    5%{filter:saturate(1)contrast(1.3)hue-rotate(0deg);}
+    
+}
+
+
+        #time-display{
+            text-shadow: 0 0px 2px rgba(46, 255, 245,.81), 0 4px 6px rgb(0, 0, 0), 0 -4px 8px gray;
+            font-family:Chillax;
+                        color:transparent;
+font-weight:2;
+            font-size:12rem;
+            line-height:100%;
+            animation:timeblink 60s linear infinite;
+        }
+        @keyframes timeblink {
+            0% {opacity:0;text-shadow:none;}
+            0.3% {opacity:1; color:lime;text-shadow:none;}
+            0.6% {opacity:0;}
+                        0.9% {opacity:1; color:skyblue;text-shadow:none;}
+            1.3% {opacity:0;}
+                        1.7% {opacity:1; color:rgb(255, 88, 180);;text-shadow:none;}
+            2.2%{opacity:0;text-shadow:none;}
+            2.7%{opacity:1; color:transparent;            text-shadow: 0 0px 2px rgba(46, 255, 245,.81), 0 4px 6px rgb(0, 0, 0), 0 -4px 8px gray;}
+                            99.7%{opacity:1; color:transparent;            text-shadow: 0 0px 2px rgba(46, 255, 245,.81), 0 4px 6px rgb(0, 0, 0), 0 -4px 8px gray;}
+
+        }
+
+        p {
+            font-family:Chillax;
+            font-size:2rem;
+            letter-spacing:30px; text-transform:uppercase;
+            color:rgba(255,255,255,73);;
+            transform-style:preserve-3d;
+            animation:timeoday 1800s linear infinite;
+        }
+
+        @keyframes timeoday {
+            0% {transform:none; letter-spacing:30px; opacity:1;}
+            1%, 1.1% {transform:scale(0.01); letter-spacing:-5px; opacity:0;}
+            1.12% {transform:scale(2.5);letter-spacing:200px; opacity:1;}
+    1.3%, 100% {transform:rotate(180deg)scaleY(200); letter-spacing:450px; opacity:0;}
+        }
+      
+    </style>
+</head>
+<body>
+
+    <!-- This div centers the content using Tailwind CSS -->
+    <div class="flex flex-col h-full w-full justify-center items-center text-white p-4">
+        <div id="time-display"></div>
+        <p id="period-display"></p>
+    </div>
+
+    <script>
+        function updateSky() {
+            const now = new Date();
+            const hour = now.getHours();
+            
+            // Get the <html> element to set CSS variables
+            const root = document.documentElement;
+
+            let sky, horizon, glow, period;
+
+            // This switch statement defines the color palette for different times of day
+            switch (true) {
+                case (hour >= 0 && hour < 4): // 12:00 AM - 3:59 AM
+                    sky = '#020617';       // Midnight
+                    horizon = '#1e293b';
+                    glow = '#334155';
+                    period = 'Late Night';
+                    break;
+                
+                case (hour >= 4 && hour < 6): // 4:00 AM - 5:59 AM
+                    sky = '#1e1b4b';       // Pre-Dawn
+                    horizon = '#4338ca';
+                    glow = '#a5b4fc';
+                    period = 'Pre-Dawn';
+                    break;
+
+                case (hour >= 6 && hour < 8): // 6:00 AM - 7:59 AM
+                    sky = '#4a044e';       // Dawn
+                    horizon = '#f97316';
+                    glow = '#fde047';
+                    period = 'Dawn';
+                    break;
+
+                case (hour >= 8 && hour < 12): // 8:00 AM - 11:59 AM
+                    sky = '#0ea5e9';       // Morning
+                    horizon = '#bae6fd';
+                    glow = '#f0f9ff';
+                    period = 'Morning';
+                    break;
+                
+                case (hour >= 12 && hour < 16): // 12:00 PM - 3:59 PM
+                    sky = '#0284c7';       // Afternoon
+                    horizon = '#7dd3fc';
+                    glow = '#e0f2fe';
+                    period = 'Afternoon';
+                    break;
+
+                case (hour >= 16 && hour < 18): // 4:00 PM - 5:59 PM
+                    sky = '#0369a1';       // Late Afternoon
+                    horizon = '#fb923c';
+                    glow = '#fef3c7';
+                    period = 'Late Afternoon';
+                    break;
+
+                case (hour >= 18 && hour < 20): // 6:00 PM - 7:59 PM
+                    sky = '#7e22ce';       // Dusk
+                    horizon = '#f43f5e';
+                    glow = '#fda4af';
+                    period = 'Dusk';
+                    break;
+
+                case (hour >= 20 && hour <= 23): // 8:00 PM - 11:59 PM
+                default:
+                    sky = '#1f2937';       // Night
+                    horizon = '#000000';
+                    glow = '#1f2937';
+                    period = 'Night';
+                    break;
+            }
+
+            // Set the CSS variables on the :root (<html> element)
+            root.style.setProperty('--sky-color', sky);
+            root.style.setProperty('--horizon-color', horizon);
+            root.style.setProperty('--glow-color', glow);
+
+            // Update the text content
+            document.getElementById('period-display').innerText = period;
+            document.getElementById('time-display').innerText = now.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            // Log to console for debugging
+            // console.log(`Time: ${now.toLocaleTimeString()}, Period: ${period}`);
+        }
+
+        // Run the function once on page load
+        updateSky();
+
+        // Run the function every 60 seconds (60000 milliseconds) to check for updates
+        setInterval(updateSky, 60000);
+    </script>
+
+</body>
+</html>

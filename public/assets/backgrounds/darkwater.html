@@ -1,0 +1,130 @@
+<style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #020010;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            opacity:1;filter:invert(1)saturate(.2)blur(10px);;
+            height: 100vh;
+        }
+    </style>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000); 
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                mouse: { value: new THREE.Vector2(0.5, 0.5) } 
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform vec2 resolution;
+                uniform vec2 mouse;
+                varying vec2 vUv;
+                
+                mat2 rot(float a) {
+                    float s = sin(a);
+                    float c = cos(a);
+                    return mat2(c, -s, s, c);
+                }
+                
+                void main() {
+                    vec2 FC = gl_FragCoord.xy;
+                    vec2 r = resolution;
+                    float t = time;
+                    vec4 o = vec4(0.0);
+                    
+                    vec2 uv = (FC * 2.0 - r.xy) / r.y;
+                    vec3 rayDir = normalize(vec3(uv, 1.0));
+                    
+                    for(float i = 0.0; i < 20.0; i++) {
+                        float z = i * 0.5 + 0.1;
+                        
+                        vec3 p = z * rayDir;
+                        vec2 mouseOffset = (mouse - 0.5) * 1.0;
+                        
+                        p.xz *= rot(t * 0.2 + mouseOffset.x);
+                        p.yz *= rot(t * 0.15 + mouseOffset.y);
+                        vec3 a = p;
+                        
+                        float d;
+                        for(d = 1.0; d < 4.0; d += 1.0) {
+                            a -= sin(a * d + t + i*0.1).yzx / (d * 0.8);
+                        }
+                        
+                        vec3 q = abs(a);
+                        float mx = max(max(q.x, q.y), q.z);
+                        float s = a.z + a.y - t;
+                        
+                        d = abs(2.0 - mx) + abs(cos(s)) / 7.0;
+                        
+                        float z_col = z + d;
+                        
+                        vec4 colorPhase = vec4(0.0, 2.0 + mouse.y * 2.0, 4.0 - mouse.y * 2.0, 0.0);
+                        
+                        o += (cos(s - z_col + colorPhase) + 1.0) / (d*0.5 + 0.01);
+                    }
+                    
+                    o = o / 20.0; 
+                    o = o / (1.0 + o);
+                    
+                    o = smoothstep(0.15, 0.85, o);
+                    
+                    gl_FragColor = o;
+                    gl_FragColor.a = 1.0;
+                }
+            `
+        });
+        
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            material.uniforms.resolution.value.set(width, height);
+        });
+        window.addEventListener('mousemove', (event) => {
+            material.uniforms.mouse.value.x = event.clientX / window.innerWidth;
+            material.uniforms.mouse.value.y = 1.0 - (event.clientY / window.innerHeight);
+        });
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.time.value += 0.002;
+            renderer.render(scene, camera);
+        }
+        
+        window.onload = function () {
+            animate();
+        }
+    </script>

@@ -19,6 +19,7 @@
             height: 100vh;
             font-family: 'Adso', sans-serif;
             color: white;
+            filter:blur(20px)brightness(3)contrast(2);
             animation:body 2s ease forwards;
         }
 
@@ -164,7 +165,7 @@
                 const aspect = window.innerWidth / window.innerHeight;
                 this.camera = new THREE.PerspectiveCamera(-875, aspect, 0.1, 1000);
                 this.camera.position.z = -0;
-                this.camera.position.y = 1;
+                this.camera.position.y = 20;
                 this.camera.lookAt(0,-2,100);
 
                 this.renderer = new THREE.WebGLRenderer({ 
@@ -245,11 +246,11 @@
                     positions[i3 + 1] = point.y;
                     positions[i3 + 2] = point.z;
 
-                    colors[i3] = .1;      // R
-                    colors[i3 + 1] = 0;  // G
-                    colors[i3 + 2] = 0;  // B
+                    colors[i3] = 0;      // R
+                    colors[i3 + 1] = 0.015;  // G
+                    colors[i3 + 2] = 0.01;  // B
 
-                    sizes[i] = 1.5 + Math.random() * 1.5;
+                    sizes[i] = 1.5 + Math.random() * 4.5;
                 }
 
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -272,11 +273,13 @@
 
             updateParticles(deltaTime) {
                 // Rotation
-                this.particles.rotation.y += deltaTime * .03;
+                this.particles.rotation.y += deltaTime * .0003;
                 this.camera.position.y += deltaTime /2000;
+                this.particles.rotation.x += deltaTime * .003;
+                this.particles.rotation.z += deltaTime * .00003 + Math.random() * .0001;
 
                 // Heart beat scale
-                const heartScale = 1 + Math.sin(this.animationTime * 20) * 1;
+                const heartScale = 1 + Math.sin(this.animationTime / 20) * 0;
 
                 const positions = this.particles.geometry.attributes.position.array;
                 
@@ -293,12 +296,6 @@
                         Math.sin(time * 1) * 1.5
                     );
 
-                    // Add random movement
-                    particle.velocity.add(new THREE.Vector3(
-                        (Math.random() - 0.5) * .3,  // Increased random movement
-                        (Math.random() - 0.5) * .3,
-                        (Math.random() - 0.5) * .3
-                    ));
 
                     // Apply velocity with gentler damping
                     particle.velocity.multiplyScalar(0.97);  // Adjusted damping
@@ -311,8 +308,8 @@
 
                     // Add attraction to base position
                     const attraction = particle.basePosition.clone()
-                        .sub(new THREE.Vector3(positions[i3], positions[i3 + 1], positions[i3 + Math.random()+0.1]))
-                        .multiplyScalar(0.1);  // Attraction strength
+                        .sub(new THREE.Vector3(positions[i3], positions[i3 + 1], positions[i3 + Math.random()+10.1]))
+                        .multiplyScalar(.001);  // Attraction strength
                     
                     particle.velocity.add(attraction);
 
@@ -326,7 +323,7 @@
             }
 
             animate() {
-                const deltaTime = this.clock.getDelta()*9;
+                const deltaTime = this.clock.getDelta()*.9;
                 this.animationTime = deltaTime;
 
                 this.updateParticles(deltaTime);

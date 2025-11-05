@@ -161,13 +161,12 @@ body {
 }
 
 #canvas {
-  position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
   mix-blend-mode:darken;
-  opacity:.9;
+  opacity:1;filter:contrast(1.3);
   overflow: hidden;
 }
 </style>
@@ -190,10 +189,10 @@ import LiquidBackground from 'https://cdn.jsdelivr.net/npm/threejs-components@0.
 
 const liquidapp = LiquidBackground(document.getElementById('canvas'));
 
-liquidapp.loadImage('alexgoodhart/public/assets/art/alexart74.webp');
+liquidapp.loadImage('https://i.ibb.co/tp6pS6kS/sdfjd-oifj-sdiofj-sdiojf.png');
 liquidapp.liquidPlane.material.metalness = 1;
 liquidapp.liquidPlane.material.roughness = 0;
-liquidapp.liquidPlane.uniforms.displacementScale.value = 200;
+liquidapp.liquidPlane.uniforms.displacementScale.value = 20;
 liquidapp.setRain(false);
 //# sourceURL=pen.js
   </script>

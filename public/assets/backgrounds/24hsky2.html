@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>24‑Hour Layered Gradient Sky</title>
+  <style>
+    /*
+      Layered-gradient sky that shifts through the 24h light cycle.
+      No images. Just CSS gradients, driven by JS-set CSS variables.
+    */
+
+    :root {
+      /* Sky colors (top/bottom) */
+      --sky-top: #0b1026;   /* deep night */
+      --sky-bottom: #1a2246;
+
+      /* Sun & moon glow */
+      --sun-alpha: 0;
+      --moon-alpha: 0.7;
+
+      /* Positions as percentages (e.g., 50% 30%) */
+      --sun-x: 50%;
+      --sun-y: 85%;
+      --moon-x: 50%;
+      --moon-y: 85%;
+
+      /* Twilight bloom at horizon */
+      --twilight-alpha: 0;
+
+      /* Star field opacity (0..1) */
+      --stars-opacity: 0.9;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      /* Multiple background layers are set via JS. This fallback is a calm night. */
+      background-image:
+        radial-gradient(circle at 50% 85%, rgb(255 255 255 / 0.0), transparent 35%), /* sun fallback off */
+        radial-gradient(circle at 60% 25%, rgb(210 220 255 / 0.5), transparent 30%),  /* moon */
+        radial-gradient(120% 60% at 50% 110%, rgb(255 170 130 / 0.0), transparent 60%),
+        linear-gradient(to bottom, var(--sky-top), var(--sky-bottom));
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: cover;
+      transition: background 1200ms linear, background-image 1200ms linear, background-position 1200ms linear;
+      font-family: Chillax,system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: white;
+      display: grid;
+      place-items: center;
+    }
+
+    .hud {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .label {
+      pointer-events: none;
+      padding: 0.75rem 1rem;
+      border-radius: 999px;
+      background: rgb(0 0 0 / 0.25);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 30px rgb(0 0 0 / 0.35), inset 0 0 0 1px rgb(255 255 255 / 0.12);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="label" id="clock">--:--</div>
+  </div>
+
+  <script>
+    /* Utility: linear interpolation between two hex colors */
+    function lerpColor(a, b, t) {
+      const ah = a.replace('#','');
+      const bh = b.replace('#','');
+      const ar = parseInt(ah.substring(0,2),16), ag = parseInt(ah.substring(2,4),16), ab = parseInt(ah.substring(4,6),16);
+      const br = parseInt(bh.substring(0,2),16), bg = parseInt(bh.substring(2,4),16), bb = parseInt(bh.substring(4,6),16);
+      const rr = Math.round(ar + (br - ar) * t);
+      const rg = Math.round(ag + (bg - ag) * t);
+      const rb = Math.round(ab + (bb - ab) * t);
+      return `#${rr.toString(16).padStart(2,'0')}${rg.toString(16).padStart(2,'0')}${rb.toString(16).padStart(2,'0')}`;
+    }
+
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    // Build a star field as many small radial-gradients
+    function generateStars(n = 120) {
+      const grads = [];
+      for (let i = 0; i < n; i++) {
+        const x = Math.random() * 100;   // percent
+        const y = Math.random() * 60;    // top 60% for sky area
+        const size = Math.random() < 0.85 ? 1.2 : 2.0; // most are tiny
+        const flare = size * (1 + Math.random() * 1.5);
+        grads.push(`radial-gradient(circle ${flare}px at ${x}% ${y}%, rgb(255 255 255 / var(--stars-opacity)), rgb(255 255 255 / 0) ${size}px)`);
+      }
+      return grads;
+    }
+
+    const starLayer = generateStars(140);
+
+    function dayFraction(now) {
+      const h = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+      return h / 24; // 0..1
+    }
+
+    function skyState(now = new Date()) {
+      const frac = dayFraction(now);
+      const hours = frac * 24;
+
+      // Map 0..24 to a notional solar elevation via a sine arc peaking at 12:00 local.
+      // Shift so that sunrise ~06:00, sunset ~18:00.
+      const t = (hours - 6) / 12; // 0 at 06:00, 1 at 18:00
+      const solar = Math.sin(Math.PI * clamp(t, 0, 1)); // 0..1 daylight arc
+
+      // "Elevation" proxy from -0.4..1.0 to drive color blends
+      const elev = (t >= 0 && t <= 1) ? solar : -0.35; // below horizon at night
+
+      // Horizontal position sweeps east->west across the day
+      const sunX = 10 + (hours / 24) * 80; // 10%..90%
+      const sunY = 100 - (solar * 75 + 5); // low horizon to high noon apex
+
+      // Opposite the sun for the moon (simple model)
+      const moonX = 110 - sunX; // mirrored
+      const moonY = 100 - ((Math.sin(Math.PI * clamp(((hours+12) - 6)/12,0,1)) * 70) + 10);
+
+      // Color palettes
+      const nightTop = '#0b1026';
+      const nightBot = '#1a2246';
+      const dawnTop  = '#2b3d73';
+      const dawnBot  = '#f59e61';
+      const dayTop   = '#73b7ff';
+      const dayBot   = '#bfe7ff';
+      const duskTop  = '#2a2e62';
+      const duskBot  = '#ea6f7e';
+
+      // Blend weights for phases based on hour bands
+      // Pre‑dawn 04–06, Dawn 06–08, Day 08–16, Dusk 16–18, Night 18–04
+      let top, bot, twilight = 0, sunA = 0, moonA = 0.7, stars = 0.9;
+
+      if (hours >= 4 && hours < 6) {
+        const k = (hours - 4) / 2; // 0..1
+        top = lerpColor(nightTop, dawnTop, k);
+        bot = lerpColor(nightBot, dawnBot, k);
+        twilight = 0.2 * k;
+        sunA = 0.0;
+        moonA = 0.6 * (1 - k);
+        stars = 0.9 * (1 - k);
+      } else if (hours >= 6 && hours < 8) {
+        const k = (hours - 6) / 2; // 0..1
+        top = lerpColor(dawnTop, dayTop, k);
+        bot = lerpColor(dawnBot, dayBot, k);
+        twilight = 0.3 * (1 - k);
+        sunA = 0.7 * k + 0.1; // brightening sun
+        moonA = 0.2 * (1 - k);
+        stars = 0.3 * (1 - k);
+      } else if (hours >= 8 && hours < 16) {
+        const k = (hours - 8) / 8; // 0..1 midday drift
+        top = dayTop;
+        bot = dayBot;
+        twilight = 0.0;
+        sunA = 0.8 + 0.15 * Math.sin(Math.PI * k);
+        moonA = 0.0;
+        stars = 0.0;
+      } else if (hours >= 16 && hours < 18) {
+        const k = (hours - 16) / 2; // 0..1
+        top = lerpColor(dayTop, duskTop, k);
+        bot = lerpColor(dayBot, duskBot, k);
+        twilight = 0.35 * k;
+        sunA = 0.7 * (1 - k) + 0.05;
+        moonA = 0.25 * k;
+        stars = 0.2 * k;
+      } else if (hours >= 18 && hours < 24) {
+        const k = (hours - 18) / 6; // 0..1 to midnight
+        top = lerpColor(duskTop, nightTop, k);
+        bot = lerpColor(duskBot, nightBot, k);
+        twilight = 0.15 * (1 - k);
+        sunA = 0.0;
+        moonA = 0.55 + 0.2 * k;
+        stars = 0.5 + 0.4 * k;
+      } else { // 00–04
+        const k = hours / 4; // 0..1 till 04:00
+        top = nightTop;
+        bot = nightBot;
+        twilight = 0.0;
+        sunA = 0.0;
+        moonA = 0.7;
+        stars = 0.9;
+      }
+
+      return {
+        skyTop: top,
+        skyBot: bot,
+        twilight,
+        sun: { x: sunX, y: sunY, a: clamp(sunA, 0, 1) },
+        moon: { x: moonX, y: moonY, a: clamp(moonA, 0, 1) },
+        stars: clamp(stars, 0, 1)
+      };
+    }
+
+    function buildBackgroundLayers(state) {
+      const { skyTop, skyBot, twilight, sun, moon, stars } = state;
+
+      // Star layer first (furthest back), then sun, moon, horizon glow, then main sky gradient last
+      const starsLayer = starLayer.length
+        ? starLayer.map(s => s.replace('var(--stars-opacity)', stars.toFixed(3)))
+        : [];
+
+      const sunLayer = `radial-gradient(circle 40vmin at ${sun.x}% ${sun.y}%, rgb(255 230 150 / ${sun.a}), rgb(255 230 150 / 0) 40%)`;
+      const sunCore  = `radial-gradient(circle 12vmin at ${sun.x}% ${sun.y}%, rgb(255 255 200 / ${sun.a}), rgb(255 255 200 / 0) 60%)`;
+
+      const moonLayer = `radial-gradient(circle 28vmin at ${moon.x}% ${moon.y}%, rgb(210 225 255 / ${moon.a}), rgb(210 225 255 / 0) 35%)`;
+      const moonCore  = `radial-gradient(circle 9vmin at ${moon.x}% ${moon.y}%, rgb(255 255 255 / ${moon.a}), rgb(255 255 255 / 0) 60%)`;
+
+      const twilightLayer = `radial-gradient(130% 70% at 50% 110%, rgb(255 160 120 / ${twilight}), transparent 60%)`;
+
+      const skyLayer = `linear-gradient(to bottom, ${skyTop}, ${skyBot})`;
+
+      return [...starsLayer, sunLayer, sunCore, moonLayer, moonCore, twilightLayer, skyLayer];
+    }
+
+    function applyState(state) {
+      document.documentElement.style.setProperty('--sky-top', state.skyTop);
+      document.documentElement.style.setProperty('--sky-bottom', state.skyBot);
+      document.documentElement.style.setProperty('--twilight-alpha', state.twilight);
+      document.documentElement.style.setProperty('--sun-alpha', state.sun.a);
+      document.documentElement.style.setProperty('--moon-alpha', state.moon.a);
+      document.documentElement.style.setProperty('--sun-x', state.sun.x + '%');
+      document.documentElement.style.setProperty('--sun-y', state.sun.y + '%');
+      document.documentElement.style.setProperty('--moon-x', state.moon.x + '%');
+      document.documentElement.style.setProperty('--moon-y', state.moon.y + '%');
+
+      const layers = buildBackgroundLayers(state);
+      document.body.style.backgroundImage = layers.join(',');
+    }
+
+    function tick() {
+      const now = new Date();
+      const state = skyState(now);
+      applyState(state);
+
+      // clock label
+      const hh = String(now.getHours()).padStart(2,'0');
+      const mm = String(now.getMinutes()).padStart(2,'0');
+      document.getElementById('clock').textContent = `${hh}:${mm}`;
+    }
+
+    tick();
+    // Update every minute on the minute
+    const msToNextMinute = (60 - new Date().getSeconds()) * 1000 + 20;
+    setTimeout(() => {
+      tick();
+      setInterval(tick, 60 * 1000);
+    }, msToNextMinute);
+  </script>
+</body>
+</html>

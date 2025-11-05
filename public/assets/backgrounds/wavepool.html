@@ -10,12 +10,19 @@ overflow: hidden;
 canvas {
 position: fixed;
 top: 0;
+animation:huerotate 1000s linear infinite;
 left: 0;
 width: 100%;
 height: 100%;
 display: block;
 }
+@keyframes huerotate {
+0% {filter:hue-rotate(90deg)saturate(1)contrast(1.33);opacity:1}
 
+50% {filter:hue-rotate(0deg)saturate(1)contrast(3.3);opacity:1}
+
+100% {filter:hue-rotate(-90deg)saturate(1)contrast(1.33);opacity:1}
+}
 </style>
 
 <script type="importmap">
@@ -153,7 +160,7 @@ display: block;
                         float centerGlow = exp(-dist * 1.0) * 0.3;
                         col += centerGlow * vec3(0.4, 0.5, 0.8);
                         float vignette = 1.0 - dist * 0.5;
-                        vignette = smoothstep(0.0, 1.0, vignette);
+                        vignette = smoothstep(0.0, 2.0, vignette);
                         col *= vignette;
                         col = pow(col, vec3(0.95));
                         gl_FragColor = vec4(col, 1.0);
@@ -184,7 +191,7 @@ display: block;
         function animate() {
             requestAnimationFrame(animate);
             uniforms.t.value = clock.getElapsedTime();
-            mouse.lerp(targetMouse, 0.05);
+            mouse.lerp(targetMouse, 0.005);
             uniforms.mouse.value.copy(mouse);
             renderer.render(scene, camera);
         }
