@@ -434,7 +434,8 @@ border-radius:200px;
   @keyframes ftblink { 
     50% { opacity:.35 } }
   
-    .dynamic-panel {
+  .dynamic-panel {
+    transform-origin: top left;
     border-radius: 0.2rem .72rem .72rem 1.4rem;
     backdrop-filter: blur(.4px);
     color: #ffffff;
@@ -1660,20 +1661,20 @@ opacity:1;
     border-radius: 0.5rem;
     color: #fff;
     padding: 1rem;
-    height:90%;
-  margin-bottom:12px;
-    background:none;
-    font-family:'Chillax','Josefin Sans', 'Jost', sans-serif;
-resize:none;
+    height: 100%;
+    margin-bottom: 12px;
+    background: none;
+    font-family: 'Chillax','Josefin Sans', 'Jost', sans-serif;
+    resize: none;
     font-size: 1.7rem;
-    pointer-events:none;
+    pointer-events: none;
     outline: none;
   }
 
   .notes-editor:focus {
-        background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(48, 226, 190, 0.691);
-height:max-content;
+    height: 100%;
     border-color: #00ffcc;
     box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
   }
@@ -2356,6 +2357,8 @@ margin-right:50px; padding: 6px 10px;
   margin-top:0;
   
 }
+
+  /* Calendar lay additions removed per request */
 #calDailyExpand {position:absolute;}
 #cal-daily.mini .hdr{
     display:none;
@@ -3617,14 +3620,13 @@ bottom:0px}
         <div><input id="af-invert" type="checkbox"></div>
         <label>Background Panel</label>
         <select id="af-background" class="org-recurring-toggle" style="padding:4px 8px">
-          <option value="">None</option>
+          <option value="assets/backgrounds/default-gradient.html">Default Gradient</option>
           <option value="assets/backgrounds/Stars.html">Stars</option>
           <option value="assets/backgrounds/Spheres.html">Shaped</option>
           <option value="assets/backgrounds/rainbo.html">Rainbeau</option>
           <option value="assets/backgrounds/butterflies.html">Butterflewn</option>
                     <option value="assets/backgrounds/thing.html">Orballix</option>
-                    <option value="assets/backgrounds/24hsky1.html">24h Clock</option>
-                    <option value="assets/backgrounds/24hsky2.html">Reminding Clock</option>
+                    <option value="assets/backgrounds/24h.html">Reminding Clock</option>
                     <option value="assets/backgrounds/vialinebg.html">Vile Vial</option>
                     <option value="assets/backgrounds/lineTrance.html">Bipsychal</option>
                     <option value="assets/backgrounds/rainpool.html">PrismPool</option>
@@ -4000,6 +4002,7 @@ form.style.display = authed ? "none" : "block";}
         createdAt: Number(panel?.createdAt) || Date.now(),
         updatedAt: Number(panel?.updatedAt) || Date.now(),
         customColor: panel?.customColor || null,
+        expansionCount: Number(panel?.expansionCount || 0),
       };
       // Only include width/height if finite numbers
       const wNum = Number(panel?.w);
@@ -4772,9 +4775,15 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
     createPanelElement(panel) {
       const panelElement = document.createElement('div');
       panelElement.className = 'dynamic-panel';
-            if (panel.type === 'custom-panel') {
-              panelElement.classList.add('cw-panel');
-            }else{              panelElement.classList.add('neon-border');}
+      // Style per panel type
+      if (panel.type === 'custom-panel') {
+        panelElement.classList.add('cw-panel');
+      } else if (panel.type === 'external') {
+        // Naked look for externals on creation
+        panelElement.classList.add('panel-external');
+      } else {
+        panelElement.classList.add('neon-border');
+      }
 
       panelElement.dataset.panelId = panel.id;
       panelElement.style.left = `${panel.x}px`;
@@ -5002,39 +5011,120 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
     initializePanelContent(panelElement, panel) {
       if (panel.type === 'note') {
         const textarea = panelElement.querySelector('.notes-editor');
-        const resize = (opts = { touch: false }) => {
-          if (panel.autoHeight === false) {
-            const desired = Math.max(panelElement.offsetHeight - 60, 120);
-            textarea.style.height = desired + 'px';
-            textarea.style.overflow = 'auto';
-            if (opts.touch) {
-              this.touchPanel(panel, { h: panelElement.offsetHeight });
-              this.savePanelsToStorage();
-            }
-            return;
-          }
-          textarea.style.height = 'auto';
-          const newHeight = Math.max(textarea.scrollHeight, 80);
-          textarea.style.height = newHeight + 'px';
-          textarea.style.overflow = 'hidden';
-          const panelHeight = newHeight + 60;
-          panelElement.style.height = panelHeight + 'px';
-          if (opts.touch) {
-            panel.h = panelHeight;
-            this.touchPanel(panel, { h: panelHeight, autoHeight: true });
-            this.savePanelsToStorage();
+        const contentEl = panelElement.querySelector('.panel-content');
+        const syncTextareaToContent = () => {
+          if (!textarea || !contentEl) return;
+          const avail = Math.max(60, contentEl.clientHeight);
+          textarea.style.height = avail + 'px';
+          textarea.style.overflow = 'auto';
+        };
+        // Ensure properties exist
+        if (typeof panel.expansionCount !== 'number') panel.expansionCount = 0;
+        if (typeof panel.autoHeight !== 'boolean') panel.autoHeight = true;
+
+        // Base size relative to window if no saved dimensions
+        const applyBaseSizeFromWindow = (persist = true) => {
+          if (panel.w && panel.h) return; // respect saved sizes
+          const baseW = Math.max(280, Math.floor(window.innerWidth * 0.28));
+          const baseH = Math.max(500, Math.floor(panelElement.style.height * 0.30));
+          panelElement.style.width = baseW + 'px';
+          panelElement.style.height = (baseH + 60) + 'px';
+          textarea.style.height = baseH + 'px';
+          if (persist) {
+            panel.w = baseW; panel.h = baseH + 60;
+            this.touchPanel(panel, { w: panel.w, h: panel.h });
+            stagePanelPatch(panel.id, { w: panel.w, h: panel.h });
+            scheduleCommit(60_000);
+            try { persistence.savePanel(panel); } catch {}
           }
         };
 
+        applyBaseSizeFromWindow(false);
+
+        // Responsive update when window resizes only if not expanded yet
+        const onWinResize = () => {
+          if (panel.expansionCount > 0 || panel.autoHeight === false) return;
+          applyBaseSizeFromWindow(false);
+        };
+        window.addEventListener('resize', onWinResize);
+
+        // Resize/expand behavior
+        const ensureScrollPosition = () => {
+          // Outside edit mode: show top; In edit mode: keep bottom at ~60% height
+          if (panelElement.classList.contains('editing')) {
+            const target = Math.max(0, textarea.scrollHeight - Math.floor(textarea.clientHeight * 0.60));
+            textarea.scrollTop = target;
+          } else {
+            textarea.scrollTop = 0;
+          }
+        };
+
+        const maybeExpandOnOverflow = () => {
+          // Only expand if content exceeds current textbox height
+          const overflow = textarea.scrollHeight > textarea.clientHeight + 2;
+          if (!overflow) return;
+
+          if (panel.expansionCount === 0) {
+            // 1st expansion: 1.5x height
+            const newTaH = Math.floor(textarea.clientHeight * 1.5);
+            textarea.style.height = newTaH + 'px';
+            const newPanelH = newTaH + 60;
+            panelElement.style.height = newPanelH + 'px';
+            panel.expansionCount = 1;
+            panel.h = newPanelH;
+            panel.autoHeight = false; // lock size after manual expansions
+            this.touchPanel(panel, { h: panel.h, autoHeight: false, expansionCount: panel.expansionCount });
+            stagePanelPatch(panel.id, { h: panel.h, autoHeight: false, expansionCount: panel.expansionCount });
+            scheduleCommit(60_000);
+            try { persistence.savePanel(panel); } catch {}
+          } else if (panel.expansionCount === 1) {
+            // 2nd expansion: +1.25x height and double width
+            const newTaH = Math.floor(textarea.clientHeight * 1.25);
+            const newPanelH = newTaH + 60;
+            const newPanelW = Math.min(panelElement.offsetWidth * 2, Math.max(320, window.innerWidth - 40));
+            textarea.style.height = newTaH + 'px';
+            panelElement.style.height = newPanelH + 'px';
+            panelElement.style.width = newPanelW + 'px';
+            panel.expansionCount = 2;
+            panel.h = newPanelH; panel.w = newPanelW;
+            panel.autoHeight = false;
+            this.touchPanel(panel, { h: panel.h, w: panel.w, autoHeight: false, expansionCount: panel.expansionCount });
+            stagePanelPatch(panel.id, { h: panel.h, w: panel.w, autoHeight: false, expansionCount: panel.expansionCount });
+            scheduleCommit(60_000);
+            try { persistence.savePanel(panel); } catch {}
+          } else {
+            // 3rd+ time: no size change; maintain scroll behavior
+          }
+        };
+
+        const hydrateInitialHeights = () => {
+          if (panel.h && panel.w) {
+            // Respect persisted size; set textarea to fit panel minus chrome
+            syncTextareaToContent();
+          } else {
+            // Use base sizing from window
+            applyBaseSizeFromWindow(false);
+          }
+          ensureScrollPosition();
+        };
+
+        // Event wiring
         textarea.addEventListener('input', () => {
           panel.content = textarea.value;
-          console.log('[note] input', { id: String(panel.id), len: (panel.content||'').length });
           stagePanelPatch(panel.id, { content: panel.content });
           scheduleCommit(60_000);
-          resize({ touch: true });
+          // Don't shrink; only expand on overflow
+          maybeExpandOnOverflow();
+          ensureScrollPosition();
         });
-        textarea.addEventListener('paste', () => setTimeout(()=>resize({ touch: true }), 50));
-        resize();
+        textarea.addEventListener('paste', () => setTimeout(() => { maybeExpandOnOverflow(); ensureScrollPosition(); }, 50));
+
+        // Keep textarea synced to panel size changes
+        try {
+          const ro = new ResizeObserver(() => syncTextareaToContent());
+          ro.observe(panelElement);
+        } catch {}
+        hydrateInitialHeights();
       } else if (panel.type === 'calendar') {
         calendarManager.renderCalendar(panel.id);
       } else if (panel.type === 'external') {
@@ -5104,7 +5194,13 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
       const contentElement = panelElement.querySelector('.panel-content');
       
       if (contentElement.querySelector('textarea')) {
-        contentElement.querySelector('textarea').focus();
+        const ta = contentElement.querySelector('textarea');
+        ta.focus();
+        // Scroll so newest text is visible around 60% height
+        try {
+          const target = Math.max(0, ta.scrollHeight - Math.floor(ta.clientHeight * 0.60));
+          ta.scrollTop = target;
+        } catch {}
       } else {
         contentElement.contentEditable = true;
         contentElement.focus();
@@ -5137,6 +5233,8 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         if (textarea) {
           textarea.style.border = 'none';
           textarea.style.background = 'none';
+          // Outside edit mode, keep scroll at top
+          try { textarea.scrollTop = 0; } catch {}
         }
         this.touchPanel(panel);
       }
@@ -5183,6 +5281,14 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         const newH = Math.max(80, startH + dh);
         el.style.width = newW + 'px';
         el.style.height = newH + 'px';
+        // Live sync textarea height in note panels
+        try {
+          const ta = el.querySelector('.notes-editor');
+          const content = el.querySelector('.panel-content');
+          if (ta && content) {
+            ta.style.height = Math.max(60, content.clientHeight) + 'px';
+          }
+        } catch {}
       };
       const onUp = () => {
         document.removeEventListener('mousemove', onMove);
@@ -5197,6 +5303,15 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
           this.touchPanel(p);
           stagePanelPatch(id, { w: p.w, h: p.h, autoHeight: p.autoHeight });
           scheduleCommit(60_000);
+          try { persistence.savePanel(p); } catch {}
+          // Final sync textarea height
+          try {
+            const ta = el.querySelector('.notes-editor');
+            const content = el.querySelector('.panel-content');
+            if (ta && content) {
+              ta.style.height = Math.max(60, content.clientHeight) + 'px';
+            }
+          } catch {}
         }
       };
       handle.addEventListener('mousedown', onDown);
@@ -5441,15 +5556,23 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
     }
 
     applyPanelColor(el, panel) {
+      // Clear styles when no custom color
       if (!panel?.customColor) {
-        // Clear filter and any inline overrides previously set
         try {
-          el.style.removeProperty('filter');
-          el.style.removeProperty('background');
-          el.style.removeProperty('border-color');
-          el.style.removeProperty('box-shadow');
+          // Remove any color filters/backgrounds applied previously
           const body = el.querySelector('.panel-body');
-          if (body) body.style.removeProperty('background');
+          if (body) {
+            body.style.removeProperty('filter');
+            body.style.removeProperty('background');
+            body.style.removeProperty('box-shadow');
+            body.style.removeProperty('border-color');
+          }
+          el.style.removeProperty('background');
+          el.style.removeProperty('box-shadow');
+          el.style.removeProperty('border-color');
+          // Keep buttons untouched
+          const btns = el.querySelector('.panel-buttons-container');
+          if (btns) btns.style.removeProperty('filter');
           const title = el.querySelector('.panel-title');
           if (title) {
             title.style.removeProperty('background');
@@ -5460,21 +5583,24 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         return;
       }
 
-      const { h } = panel.customColor;
-      // Apply hue-rotate to entire panel; keep default gradients/shadows
-      el.style.filter = `hue-rotate(${Number(h)||0}deg)`;
-      // Ensure no left-over overrides remain
+      const { h, s, l } = panel.customColor;
+      // Map saturation and lightness to CSS filter multipliers
+      const sat = Math.max(0, Number(s) || 0); // 0..100
+      const lig = Math.max(0, Number(l) || 0); // 0..100
+      const sFactor = Math.max(0, (sat / 50));      // 50 -> 1, 100 -> 2, 0 -> 0
+      const bFactor = Math.max(0.2, (lig / 50));    // 50 -> 1, clamp min 0.2
+
+      // Apply color treatment to the entire panel element for clear effect
+      el.style.filter = `hue-rotate(${Number(h)||0}deg) saturate(${sFactor}) brightness(${bFactor})`;
+
+      // Inverse treatment for the button strip to ensure readability (optional boost)
       try {
-        el.style.removeProperty('background');
-        el.style.removeProperty('border-color');
-        el.style.removeProperty('box-shadow');
-        const body = el.querySelector('.panel-body');
-        if (body) body.style.removeProperty('background');
-        const title = el.querySelector('.panel-title');
-        if (title) {
-          title.style.removeProperty('background');
-          title.style.removeProperty('-webkit-background-clip');
-          title.style.removeProperty('-webkit-text-fill-color');
+        const btns = el.querySelector('.panel-buttons-container');
+        if (btns) {
+          const invH = (Number(h) + 180) % 360;
+          const invS = sat > 0 ? (1 / sFactor) : 1; // avoid div by zero
+          const invB = 1 / bFactor;
+          btns.style.filter = `hue-rotate(${invH}deg) saturate(${invS}) brightness(${invB})`;
         }
       } catch {}
     }
@@ -5788,6 +5914,17 @@ renderPanels() {
     el.style.top = `${panel.y || 0}px`;
     if (panel.w) el.style.width = panel.w + 'px';
     if (panel.h) el.style.height = panel.h + 'px';
+    // For notes, ensure textarea fills content area after geometry updates
+    if (panel.type === 'note') {
+      try {
+        const contentArea = el.querySelector('.panel-content');
+        const ta = contentArea && contentArea.querySelector('.notes-editor');
+        if (ta && contentArea) {
+          ta.style.height = Math.max(60, contentArea.clientHeight) + 'px';
+          ta.style.overflow = 'auto';
+        }
+      } catch {}
+    }
 
     // title
     const titleEl = el.querySelector('.panel-title');
@@ -6348,16 +6485,42 @@ renderPanels() {
       try { localStorage.setItem('glOS.background', val); } catch {}
     }
     applyBackground(){
-   const mainbg = document.body ;
-
+      const mainbg = document.body;
       const frame = document.getElementById('bg-panel-frame');
       if (!frame) return;
+      const DEFAULT_BG = 'assets/backgrounds/default-gradient.html';
       const bg = this.loadBackground();
-      frame.src = bg || '';
+      frame.src = bg && bg.trim() !== '' ? bg : DEFAULT_BG;
       // Apply current filters to background container
       const container = document.getElementById('bg-panel-container');
       if (container) container.style.filter = this.filterCss();
       mainbg.style.background = 'none';
+
+      // Reset calendar position first
+      const calendar = document.getElementById('cal-daily');
+      if (calendar) {
+        // Reset to default styles
+        calendar.style.position = '';
+        calendar.style.transformOrigin = '';
+        calendar.style.right = '';
+        calendar.style.transform = '';
+        calendar.style.top = '';
+
+        // Apply custom position for 24h background option
+        if (frame.src.endsWith('assets/backgrounds/24h.html')) {
+          calendar.style.position = 'absolute';
+          calendar.style.transformOrigin = 'top';
+          calendar.style.right = '50vw';
+          calendar.style.transform = 'translateX(50%)';
+          calendar.style.top = '30vh';
+        }
+        // You can add more background-specific customizations here
+        // For example:
+        // if (frame.src.endsWith('assets/backgrounds/purdots.png')) {
+        //   calendar.style.color = 'white';
+        //   calendar.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+        // }
+      }
     }
     bindFilterControls(){
       // Bind filter control inputs (sliders, reset, invert). Button and close/done handled globally.
@@ -9069,19 +9232,6 @@ window._initManagers = () => {
   window.archiveManager = archiveManager;
 
     // Sync button functionality
-    document.getElementById('sync-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('sync-btn');
-      try {
-        await persistence.flushAll(2000);
-        const originalColor = btn.style.color;
-        btn.style.color = '#44ff44';
-        setTimeout(() => { btn.style.color = originalColor; }, 1000);
-      } catch (error) {
-        console.error('Sync flush failed:', error);
-        btn.style.color = '#ff4444';
-        setTimeout(() => { btn.style.color = '#ff6f7a'; }, 1000);
-      }
-    });
 };
 
 window.addEventListener('DOMContentLoaded', () => {
