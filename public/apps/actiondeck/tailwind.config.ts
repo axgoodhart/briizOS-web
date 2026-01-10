@@ -18,7 +18,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['Jost', 'sans-serif'],
-        headline: ['Bungee', 'sans-serif'],
+        headline: ['Nokie', 'sans-serif'],
         code: ['"Playwrite NL"', 'monospace'],
       },
       colors: {
@@ -28,7 +28,7 @@ export default {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: 'linear-gradient(var(--primary))',
+          DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {

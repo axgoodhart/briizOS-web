@@ -87,6 +87,12 @@ button {border:.5px solid gray;}
   box-shadow: inset 0 0 8px hsla(165, 100%, 35%, 0.18);
 }
 
+#radix-«R7mmql7» {
+  height: 80vh;
+  overflow:scroll;
+}
+#radix-«R7mmql7» button {color:lime;
+}
 /* Task list */
 .task-card { border: 1px solid hsla(165,70%,40%,0.35); background: linear-gradient(to bottom, rgba(0,128,128,0.1), rgba(0,0,0,0.6)); }
 .task-input-row { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
@@ -100,3 +106,94 @@ button {border:.5px solid gray;}
 .modal-panel { background: linear-gradient(to bottom, rgba(0,128,128,0.2), rgba(0,0,0,0.85)); border-left: 1px solid hsla(165,70%,35%,0.4); }
 .modal-header { background: linear-gradient(to bottom, rgba(0,128,128,0.25), transparent); }
 .modal-footer { background: linear-gradient(to top, rgba(0,128,128,0.15), transparent); }
+
+/* Domain filter bar */
+.domain-filter-bar {
+  padding: 1rem;
+}
+
+/* Status badges */
+.status-badge-active { background: hsla(165, 100%, 45%, 0.15); color: hsl(165, 100%, 45%); }
+.status-badge-paused { background: hsla(45, 90%, 55%, 0.15); color: hsl(45, 90%, 55%); }
+.status-badge-done { background: hsla(210, 70%, 55%, 0.15); color: hsl(210, 70%, 55%); }
+.status-badge-archived { background: hsla(210, 10%, 50%, 0.15); color: hsl(210, 10%, 50%); }
+
+/* Progress ring glow */
+.progress-ring-glow {
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Milestone item */
+.milestone-item {
+  border: 1px solid hsla(165, 70%, 40%, 0.25);
+  background: linear-gradient(to bottom, rgba(0, 128, 128, 0.08), rgba(0,0,0,0.4));
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.milestone-item:hover {
+  border-color: hsla(165, 70%, 40%, 0.4);
+}
+.milestone-item.completed {
+  background: linear-gradient(to bottom, hsla(165, 100%, 45%, 0.08), rgba(0,0,0,0.4));
+  border-color: hsla(165, 100%, 45%, 0.3);
+}
+
+/* Domain page header */
+.domain-header {
+  position: relative;
+  overflow: hidden;
+}
+.domain-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  filter: blur(40px);
+  opacity: 0.3;
+  z-index: -1;
+}
+
+/* Offline indicator */
+.offline-indicator {
+  background: linear-gradient(to right, hsla(45, 90%, 55%, 0.1), hsla(45, 90%, 55%, 0.05));
+  border: 1px solid hsla(45, 90%, 55%, 0.3);
+  border-radius: 8px;
+}
+
+/* Tag chips */
+.tag-chip {
+  background: hsla(210, 20%, 30%, 0.5);
+  border: 1px solid hsla(210, 20%, 50%, 0.3);
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Search bar styling */
+.search-bar-container {
+  position: relative;
+}
+.search-bar-container input {
+  padding-left: 2.5rem;
+}
+
+/* Accordion styling for modal */
+[data-state="open"] > .accordion-trigger-icon {
+  transform: rotate(180deg);
+}
+
+/* Scrollbar styling for domain filter */
+.domain-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.domain-scroll::-webkit-scrollbar-track {
+  background: hsla(210, 30%, 10%, 0.5);
+  border-radius: 3px;
+}
+.domain-scroll::-webkit-scrollbar-thumb {
+  background: hsla(165, 70%, 40%, 0.5);
+  border-radius: 3px;
+}
+.domain-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsla(165, 70%, 40%, 0.7);
+}

@@ -23,16 +23,16 @@ export function DashboardSummary() {
   }, []);
 
   const totalProjects = projects.length;
-  const allTasks = projects.flatMap(p => p.tasks);
+  const allTasks = projects.flatMap((p) => p.tasks);
   const totalTasks = allTasks.length;
-  const completedTasks = allTasks.filter(t => t.completed).length;
+  const completedTasks = allTasks.filter((t) => t.completed).length;
   const pendingTasks = totalTasks - completedTasks;
 
   const chartData = [
-    { name: 'Pending', value: pendingTasks, fill: 'hsl(var(--chart-3))' },
-    { name: 'Completed', value: completedTasks, fill: 'hsl(var(--chart-1))' },
-  ];
-  
+  { name: 'Pending', value: pendingTasks, fill: 'hsl(var(--chart-3))' },
+  { name: 'Completed', value: completedTasks, fill: 'hsl(var(--chart-1))' }];
+
+
   const totalCompleted = chartData.reduce((acc, curr) => acc + curr.value, 0);
 
   const handleQuickSubmit = () => {
@@ -48,10 +48,10 @@ export function DashboardSummary() {
         importance: 5,
         size: 10,
         relevance: '',
-        coverImage: '' as any,
+        coverImage: '' as any
       } as any);
     } else {
-      const proj = projects.find(p => p.id === quickMode);
+      const proj = projects.find((p) => p.id === quickMode);
       if (proj) {
         const newTask = { id: `ptask-${Date.now()}`, title: text, completed: false };
         updateProject({ ...proj, tasks: [newTask, ...proj.tasks] });
@@ -64,20 +64,17 @@ export function DashboardSummary() {
   return (
     <Card className="dashboard-card shadow-lg neon-glow">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1 dashboard-header">
-            <h1 className="text-2xl font-bold tracking-tight">Smart Dashboard</h1>
-            <p className="max-w-2xl">
-              An intelligent overview of all your projects and tasks.
-            </p>
+        <div id="el-0" className="flex items-center justify-between">
+          <div id="el-1" className="space-y-1 dashboard-header">
+            <h1 id="el-2" className="text-2xl font-bold tracking-tight">Smart Dashboard</h1>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div id="el-3" className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Left side: Summary Cards and Filter */}
-        <div className="md:col-span-1 space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+        <div id="el-4" className="md:col-span-1 space-y-4">
+          <div id="el-5" className="grid grid-cols-3 gap-4">
               <Card className="dashboard-metrics-card">
                 <CardHeader className="p-4 flex flex-col items-center justify-center space-y-2 text-teal-100">
                    <CardTitle className="text-3xl font-bold">{totalProjects}</CardTitle>
@@ -111,71 +108,71 @@ export function DashboardSummary() {
         </div>
 
         {/* Right side: Chart */}
-        <div className="md:col-span-2">
+        <div id="el-6" className="md:col-span-2">
             <Card className="h-full flex items-center justify-center p-4 dashboard-chart-card">
-                 {isClient ? (
-                    <div className="w-full h-full flex items-center justify-center">
+                 {isClient ?
+              <div id="el-7" className="w-full h-full flex items-center justify-center">
                         <ChartContainer config={{}} className="mx-auto aspect-square max-h-[160px]">
                             <RadialBarChart
-                                data={chartData}
-                                innerRadius="60%"
-                                outerRadius="110%"
-                                startAngle={90}
-                                endAngle={-270}
-                            >
+                    data={chartData}
+                    innerRadius="60%"
+                    outerRadius="110%"
+                    startAngle={90}
+                    endAngle={-270}>
+
                                 <PolarAngleAxis type="number" domain={[0, totalCompleted]} tick={false} />
-                                <RadialBar background={{ fill: 'rgba(255,255,255,0.1)'}} dataKey="value" cornerRadius={10} />
-                                 <text
-                                    x="50%"
-                                    y="50%"
-                                    textAnchor="middle"
-                                    dominantBaseline="middle"
-                                    className="fill-white text-2xl font-bold"
-                                >
+                                <RadialBar background={{ fill: 'rgba(255,255,255,0.1)' }} dataKey="value" cornerRadius={10} />
+                                 <text id="el-8"
+                    x="50%"
+                    y="50%"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="fill-white text-2xl font-bold">
+
                                     {totalTasks}
                                 </text>
                             </RadialBarChart>
                         </ChartContainer>
-                        <div className="ml-8 space-y-2 text-sm text-teal-100">
-                            <div className="flex items-center gap-2">
-                                <div className="h-3 w-3 rounded-full bg-[hsl(var(--chart-3))]"></div>
-                                <span>{pendingTasks} Pending</span>
+                        <div id="el-9" className="ml-8 space-y-2 text-sm text-teal-100">
+                            <div id="el-10" className="flex items-center gap-2">
+                                <div id="el-11" className="h-3 w-3 rounded-full bg-[hsl(var(--chart-3))]"></div>
+                                <span id="el-12">{pendingTasks} Pending</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="h-3 w-3 rounded-full bg-[hsl(var(--chart-1))]"></div>
-                                <span>{completedTasks} Complete</span>
+                            <div id="el-13" className="flex items-center gap-2">
+                                <div id="el-14" className="h-3 w-3 rounded-full bg-[hsl(var(--chart-1))]"></div>
+                                <span id="el-15">{completedTasks} Complete</span>
                             </div>
                         </div>
+                    </div> :
+
+              <div id="el-16" className="h-[160px] w-full flex items-center justify-center">
+                        <p id="el-17">Loading chart...</p>
                     </div>
-                ) : (
-                    <div className="h-[160px] w-full flex items-center justify-center">
-                        <p>Loading chart...</p>
-                    </div>
-                )}
+              }
             </Card>
         </div>
       </div>
-      <div className="dashboard-quick-row">
+      <div id="el-18" className="dashboard-quick-row">
         <Input
-          placeholder="Quick: create project or add task"
-          value={quickText}
-          onChange={(e)=>setQuickText(e.target.value)}
-          className="dashboard-input"
-        />
+            placeholder="Quick: create project or add task"
+            value={quickText}
+            onChange={(e) => setQuickText(e.target.value)}
+            className="dashboard-input" />
+
         <Select value={quickMode} onValueChange={setQuickMode}>
           <SelectTrigger className="dashboard-input dashboard-select">
             <SelectValue placeholder="Choose action" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="new">Create new project</SelectItem>
-            {projects.map(p => (
+            {projects.map((p) =>
               <SelectItem key={p.id} value={p.id}>Add task to: {p.name}</SelectItem>
-            ))}
+              )}
           </SelectContent>
         </Select>
         <Button onClick={handleQuickSubmit} className="dashboard-button-primary">Go</Button>
       </div>
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 }

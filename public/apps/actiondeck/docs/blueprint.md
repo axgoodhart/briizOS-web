@@ -17,7 +17,7 @@
 - Accent color: Sky Blue to highlight interactive elements.
 - Body and headline font: 'Jost', a sans-serif font, for both body text and headlines, lends a clean, objective, and readable style. 'Inter' is suitable for a software application intended to also run on devices.
 - Monospace font: 'Playwrite Netherland' for displaying code snippets.
-- Title font: 'Bungee', a display font, for large titles and headings.
+- Title font: 'Nokie', a display font, for large titles and headings.
 - Use a set of simple, minimalist icons. All icons should use the accent color (Sky Blue).
 - Clean, spacious layout with clear divisions between the casual task list and project dashboard. Prioritize a user-friendly, intuitive design for both views.
 - Subtle transitions for task completion and dynamic chart updates.

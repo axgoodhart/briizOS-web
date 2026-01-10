@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ActionDeck ID Finder</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a2e;
+      color: #0ff;
+      padding: 20px;
+    }
+    h1 {
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+    }
+    .instructions {
+      background: #16213e;
+      padding: 15px;
+      border: 1px solid #0ff;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #0ff;
+      color: #1a1a2e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 5px;
+    }
+    button:hover {
+      background: #00cccc;
+    }
+    #output {
+      background: #0d1117;
+      padding: 15px;
+      border: 1px solid #0ff;
+      border-radius: 8px;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 12px;
+    }
+    .highlight {
+      background: yellow;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 ActionDeck Auto-ID Finder</h1>
+
+  <div class="instructions">
+    <h3>Instructions:</h3>
+    <ol>
+      <li>Open your ActionDeck app in another tab</li>
+      <li>Right-click on ANY element you want to style</li>
+      <li>Click "Inspect Element" in Chrome DevTools</li>
+      <li>Look for <code>id="auto-XXX"</code> in the HTML</li>
+      <li>Copy that ID and use it in your globals.css!</li>
+    </ol>
+    <p><strong>Or use the tools below:</strong></p>
+  </div>
+
+  <button onclick="enableClickToId()">🖱️ Click to Find ID Mode</button>
+  <button onclick="listAllIds()">📋 List All Auto-IDs</button>
+  <button onclick="exportIdMap()">💾 Export ID Map</button>
+  <button onclick="clearOutput()">🗑️ Clear</button>
+
+  <div id="output"></div>
+
+  <script>
+    let clickMode = false;
+
+    function enableClickToId() {
+      if (clickMode) {
+        clickMode = false;
+        document.body.style.cursor = 'default';
+        log('❌ Click-to-ID mode disabled');
+        return;
+      }
+
+      clickMode = true;
+      document.body.style.cursor = 'crosshair';
+      log('✅ Click-to-ID mode enabled! Click any element on the page...');
+
+      document.addEventListener('click', handleClick, true);
+    }
+
+    function handleClick(e) {
+      if (!clickMode) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const el = e.target;
+      const id = el.id || 'NO ID';
+      const tag = el.tagName.toLowerCase();
+      const classes = el.className ? `.${el.className.split(' ').join('.')}` : '';
+
+      log(`
+🎯 Clicked Element:
+   Tag: <${tag}>
+   ID: ${id}
+   Classes: ${classes}
+   Text: ${el.textContent.substring(0, 50)}...
+
+📝 CSS Selector:
+   #${id} { }
+      `);
+
+      clickMode = false;
+      document.body.style.cursor = 'default';
+    }
+
+    function listAllIds() {
+      const allElements = document.querySelectorAll('[id^="auto-"]');
+      log(`\n📋 Found ${allElements.length} auto-generated IDs:\n`);
+
+      allElements.forEach((el, index) => {
+        const tag = el.tagName.toLowerCase();
+        const text = el.textContent.substring(0, 30).trim();
+        log(`${index + 1}. #${el.id} <${tag}> "${text}..."`);
+      });
+    }
+
+    function exportIdMap() {
+      const allElements = document.querySelectorAll('[id^="auto-"]');
+      const map = {};
+
+      allElements.forEach((el) => {
+        map[el.id] = {
+          tag: el.tagName.toLowerCase(),
+          classes: el.className,
+          text: el.textContent.substring(0, 50).trim()
+        };
+      });
+
+      const json = JSON.stringify(map, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'actiondeck-id-map.json';
+      a.click();
+
+      log('✅ ID map exported to actiondeck-id-map.json');
+    }
+
+    function log(message) {
+      const output = document.getElementById('output');
+      output.textContent += message + '\n';
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearOutput() {
+      document.getElementById('output').textContent = '';
+    }
+  </script>
+</body>
+</html>

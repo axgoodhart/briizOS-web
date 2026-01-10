@@ -4,9 +4,9 @@ import { Separator } from '@/components/ui/separator';
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
+    <div id="el-196" className="space-y-6">
       <DashboardSummary />
       <ProjectList />
-    </div>
-  );
+    </div>);
+
 }

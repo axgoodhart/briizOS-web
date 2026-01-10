@@ -1,0 +1,20 @@
+{
+  "hosting":  {
+    "site": "briizos-dash",
+    "public": "public"
+  },
+  "apphosting": [
+    {
+      "backendId": "dex",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        ".history",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    }
+  ]
+}

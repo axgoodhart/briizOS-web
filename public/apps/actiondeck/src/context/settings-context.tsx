@@ -5,9 +5,20 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 
+type FilterSettings = {
+  brightness: number;
+  contrast: number;
+  saturate: number;
+  hueRotate: number;
+  sepia: number;
+  invert: boolean;
+  backgroundPanel: string;
+};
+
 type Settings = {
   enableSync: boolean;
   importBriizOS: boolean;
+  filters?: FilterSettings;
   updatedAt?: unknown;
 };
 
