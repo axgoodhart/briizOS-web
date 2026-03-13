@@ -57,24 +57,6 @@
             0% { transform: translate(0, 0); }
             100% { transform: translate(60px, 60px); }
         }
-        .scan-line {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 8px;
-            background: linear-gradient(90deg,
-                transparent 0%,
-                var(--primary-color) 40%,
-                var(--accent-color) 50%,
-                var(--primary-color) 60%,
-                transparent 100%);
-            box-shadow:
-                0 0 40px var(--primary-color),
-                0 0 80px rgba(var(--primary-rgb), 0.6),
-                0 0 120px rgba(var(--primary-rgb), 0.3);
-            animation: scanMove 2.5s ease-in-out infinite;
-        }
         @keyframes scanMove {
             0%, 100% { top: 0%; opacity: 0; }
             10%, 90% { opacity: 1; }
@@ -121,6 +103,7 @@
             top: 10px;
             left: 10px;
             font-size: 12px;
+            display:none;
             color: var(--primary-color);
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -227,6 +210,7 @@
             z-index: 100;
             width: auto;
             padding: 0 15px;
+            display:none;
         }
         .control-section {
             display: flex;
@@ -411,6 +395,7 @@
             flex-direction: column;
             gap: 5px;
             z-index: 100;
+            display:none;
         }
         .perf-bar {
             width: 100px;
@@ -528,7 +513,6 @@
     <div class="grid-overlay"></div>
     <div class="tech-pattern"></div>
     <div class="circuit-lines"></div>
-    <div class="scan-line"></div>
     <div id="hud">
         <div class="hud-line">
             <span>SYSTEM:</span>
@@ -882,8 +866,9 @@
             scene = new THREE.Scene();
             scene.fog = new THREE.FogExp2(0x000814, 0.0005);
            
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2500);
-            camera.position.set(0, 0, 155);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 21500);
+            camera.lookAt(0, 0, 0);
+            camera.position.set(0, 100, 333);
            
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
@@ -916,10 +901,11 @@
             controls.dampingFactor = 0.1;
             controls.rotateSpeed = 0.6;
             controls.zoomSpeed = 0.9;
-            controls.minDistance = 30;
-            controls.maxDistance = 350;
-            controls.enablePan = false;
+            controls.enablePan = true;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 4.3;
         }
+
        
         function setupPostProcessing() {
             composer = new EffectComposer(renderer);
@@ -1158,14 +1144,11 @@
                 });
             }
            
-            const executeBtn = document.getElementById('execute-btn');
-            if (executeBtn) {
-                executeBtn.addEventListener('click', executeTransformation);
-                executeBtn.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    executeTransformation();
-                });
-            }
+
+            setInterval(() => {
+                executeTransformation();
+            }, 20000);
+            
             const controlsToggle = document.getElementById('controls-toggle');
             const controlPanel = document.getElementById('control-panel');
             if (controlsToggle && controlPanel) {
@@ -1346,16 +1329,15 @@
        
         function onSystemResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             composer.setSize(window.innerWidth, window.innerHeight);
         }
-       
+
         function executeMainLoop() {
             requestAnimationFrame(executeMainLoop);
-            time += 0.012;
            
             updateSystemStatus();
+            
             controls.update();
            
             if (backgroundNodes) {

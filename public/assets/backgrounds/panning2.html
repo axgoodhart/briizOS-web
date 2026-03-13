@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prismatic Resin Strata</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --c-void: #050508;
+            --c-resin-dark: #120a1f;
+            --c-prism-1: #00f2ff; /* Cyan */
+            --c-prism-2: #ff0055; /* Magenta */
+            --c-prism-3: #bd00ff; /* Violet */
+            --c-prism-4: #00ff9d; /* Mint */
+            --c-glass: rgba(255, 255, 255, 0.05);
+            --c-border: rgba(255, 255, 255, 0.15);
+            
+            --f-display: 'Inter', sans-serif;
+            --f-data: 'Space Mono', monospace;
+            
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--c-void);
+            color: white;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: var(--f-display);
+        }
+
+        /* --- NOISE TEXTURE --- */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.07;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* --- STAGE --- */
+        #viewport {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            background: radial-gradient(circle at 50% -20%, #2a1b42 0%, var(--c-void) 70%);
+        }
+
+        /* --- LAYERS --- */
+        .strata-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            align-items: flex-end;
+            will-change: transform;
+        }
+
+        .strata-layer.back { z-index: 1; filter: blur(3px) brightness(0.6); opacity: 0.6; }
+        .strata-layer.mid { z-index: 2; filter: blur(1px); mix-blend-mode: hard-light; }
+        .strata-layer.front { z-index: 3; filter: drop-shadow(0 0 20px rgba(0,242,255,0.2)); }
+
+        /* --- SHARDS (TREES) --- */
+        .shard {
+            position: absolute;
+            bottom: -5vh; /* Root below screen */
+            transform-origin: bottom center;
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+            transition: transform 0.3s var(--ease-out);
+            will-change: transform, left;
+        }
+
+        /* Prismatic Resin Material */
+        .shard::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                180deg, 
+                rgba(255, 255, 255, 0.4) 0%, 
+                rgba(255, 255, 255, 0.05) 30%, 
+                rgba(255, 255, 255, 0.0) 100%
+            );
+            z-index: 2;
+        }
+
+        /* Internal refraction line */
+        .shard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 100%;
+            background: rgba(255,255,255,0.3);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            z-index: 3;
+        }
+
+        .shard-inner {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--shard-color-1), var(--shard-color-2));
+            opacity: 0.85;
+            backdrop-filter: blur(8px);
+            /* Simulates dispersion */
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5); 
+        }
+
+        /* --- UI OVERLAY --- */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            pointer-events: none;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        h1 {
+            font-size: 4rem;
+            line-height: 0.85;
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+            background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.4) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            cursor: default;
+        }
+
+        h1 span {
+            display: block;
+            font-size: 1rem;
+            font-family: var(--f-data);
+            letter-spacing: 0.2em;
+            color: var(--c-prism-1);
+            margin-bottom: 1rem;
+            -webkit-text-fill-color: var(--c-prism-1);
+        }
+
+        .status-block {
+            font-family: var(--f-data);
+            font-size: 0.75rem;
+            text-align: right;
+            color: var(--c-prism-4);
+            border-right: 2px solid var(--c-prism-4);
+            padding-right: 1rem;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 157, 0.05));
+            padding: 1rem;
+        }
+
+        .controls {
+            pointer-events: auto;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .btn-glass {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--c-border);
+            color: #fff;
+            padding: 1rem 2rem;
+            font-family: var(--f-data);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s var(--ease-out);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-glass:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--c-prism-1);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+            letter-spacing: 0.1em;
+        }
+
+        .btn-glass::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: 0.5s;
+        }
+
+        .btn-glass:hover::before {
+            left: 100%;
+        }
+
+        .data-readout {
+            font-family: var(--f-data);
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .data-item b {
+            display: block;
+            color: #fff;
+            margin-bottom: 0.2rem;
+        }
+
+        /* --- VIGNETTE --- */
+        .vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, transparent 40%, #000 120%);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* --- SCANLINE --- */
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            z-index: 50;
+            opacity: 0.3;
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(-10vh); }
+            100% { transform: translateY(110vh); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="noise-overlay"></div>
+    
+    <div id="viewport">
+        <!-- Strata Layers generated by JS -->
+        <div class="strata-layer back" id="layer-back"></div>
+        <div class="strata-layer mid" id="layer-mid"></div>
+        <div class="strata-layer front" id="layer-front"></div>
+        <div class="vignette"></div>
+        <div class="scanline"></div>
+    </div>
+
+    <div class="ui-layer">
+        <header>
+            <h1>
+                <span>GENERATIVE LANDSCAPE</span>
+                PRISMATIC<br>RESIN
+            </h1>
+            <div class="status-block">
+                SYSTEM: ONLINE<br>
+                RENDER: WEBGL_EMULATED<br>
+                FPS: <span id="fps-counter">60</span>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="data-readout">
+                <div class="data-item">
+                    <b>VELOCITY</b>
+                    <span id="vel-readout">00.00 KM/H</span>
+                </div>
+                <div class="data-item">
+                    <b>DEPTH</b>
+                    <span id="depth-readout">12.4 STRATA</span>
+                </div>
+            </div>
+            <button class="btn-glass" id="warp-btn">Engage Warp</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ENGINE: PRISMATIC
+         * Handles the infinite generation and parallax movement of the resin shards.
+         */
+        
+        const colors = [
+            ['#00f2ff', '#0048ff'], // Cyan to Blue
+            ['#bd00ff', '#5500ff'], // Violet to Indigo
+            ['#ff0055', '#ff5e00'], // Magenta to Orange
+            ['#00ff9d', '#00aaff']  // Mint to Azure
+        ];
+
+        class Shard {
+            constructor(layerElement, speedMultiplier, scaleRange, zIndex) {
+                this.layer = layerElement;
+                this.speed = speedMultiplier;
+                this.element = document.createElement('div');
+                this.element.classList.add('shard');
+                
+                // Generative Properties
+                this.width = Math.random() * 60 + 40; // 40-100px
+                this.height = Math.random() * 30 + 20; // % of screen height
+                this.x = Math.random() * window.innerWidth;
+                
+                // Styling
+                const colorPair = colors[Math.floor(Math.random() * colors.length)];
+                this.element.style.width = `${this.width * scaleRange}px`;
+                this.element.style.height = `${this.height * scaleRange}vh`;
+                this.element.style.setProperty('--shard-color-1', colorPair[0]);
+                this.element.style.setProperty('--shard-color-2', colorPair[1]);
+                this.element.style.zIndex = zIndex;
+                
+                // Add inner content for refraction
+                const inner = document.createElement('div');
+                inner.classList.add('shard-inner');
+                this.element.appendChild(inner);
+
+                this.layer.appendChild(this.element);
+                
+                // Interaction
+                this.element.addEventListener('mouseenter', () => {
+                    this.element.style.transform = `scale(1.1) translateY(-20px)`;
+                    this.element.style.filter = `brightness(1.5)`;
+                });
+                this.element.addEventListener('mouseleave', () => {
+                    this.element.style.transform = `scale(1) translateY(0)`;
+                    this.element.style.filter = `brightness(1)`;
+                });
+            }
+
+            update(globalSpeed) {
+                this.x -= globalSpeed * this.speed;
+                
+                // Infinite Loop Logic
+                if (this.x < -300) {
+                    this.x = window.innerWidth + Math.random() * 200;
+                    // Regenerate height for variation
+                    const newHeight = Math.random() * 30 + 20; 
+                    // this.element.style.height = `${newHeight}vh`; 
+                }
+                
+                this.element.style.left = `${this.x}px`;
+            }
+        }
+
+        const CONFIG = {
+            baseSpeed: 2,
+            warpSpeed: 15,
+            isWarping: false
+        };
+
+        let currentSpeed = CONFIG.baseSpeed;
+        const shards = [];
+
+        // Initialize Layers
+        const initLayer = (id, count, speed, scale, z) => {
+            const el = document.getElementById(id);
+            for(let i=0; i<count; i++) {
+                const s = new Shard(el, speed, scale, z);
+                // Pre-scatter
+                s.x = Math.random() * window.innerWidth * 1.5; 
+                shards.push(s);
+            }
+        };
+
+        // Create Depth
+        initLayer('layer-back', 15, 0.2, 0.6, 1);
+        initLayer('layer-mid', 10, 0.5, 0.8, 2);
+        initLayer('layer-front', 8, 1.0, 1.2, 3);
+
+        // Animation Loop
+        let lastTime = 0;
+        function animate(time) {
+            // Smooth speed transition
+            const targetSpeed = CONFIG.isWarping ? CONFIG.warpSpeed : CONFIG.baseSpeed;
+            currentSpeed += (targetSpeed - currentSpeed) * 0.05;
+
+            // Update UI
+            document.getElementById('vel-readout').textContent = (currentSpeed * 42).toFixed(2) + " KM/H";
+            
+            shards.forEach(shard => shard.update(currentSpeed));
+
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+
+        // UI Controls
+        const warpBtn = document.getElementById('warp-btn');
+        warpBtn.addEventListener('mousedown', () => {
+            CONFIG.isWarping = true;
+            warpBtn.textContent = "DISENGAGE";
+            document.body.style.letterSpacing = "2px"; // Subtle warp effect on body text
+        });
+        
+        warpBtn.addEventListener('mouseup', () => {
+            CONFIG.isWarping = false;
+            warpBtn.textContent = "ENGAGE WARP";
+             document.body.style.letterSpacing = "normal";
+        });
+        
+        // Handle resizing
+        window.addEventListener('resize', () => {
+            // Simplified resize handling: just let them flow
+        });
+
+    </script>
+</body>
+</html>
+

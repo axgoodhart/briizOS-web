@@ -2,9 +2,6 @@
 
 
 <div id="app">
-  <div id="hero">
-  <a target="_blank" href="https://github.com/klevron/threejs-toys">github/threejs-toys</a>
-  </div>
 </div>
 
 <style>
@@ -14,17 +11,7 @@ body, html, #app {
   height: 100%;
 }
 html{
-background:linear-gradient(to top left, #2c003e, #8e24aa, #ff80ab);
-animation:animated 700s infinite;background-color:black;
-}
-@keyframes animated {
-0% {filter:blur(6px)brightness(0);;}
-1.5% {filter:blur(0px)brightness(1)saturate(2)contrast(1.5)hue-rotate(0deg)}
-95%{filter:blur(0px)brightness(1)saturate(1)contrast(1.5)hue-rotate(1800deg)}
-100% {filter:blur(6px)brightness(0)}
-
-}
-
+background:linear-gradient(to top left, #2c003e, #8e24aa, #340112);}
 #app {
   overflow: hidden;
   touch-action: pan-up;
@@ -41,7 +28,7 @@ animation:animated 700s infinite;background-color:black;
   --fontSize: 1000px;
   --lineHeight: 10px;
   width: auto;
-  height: calc(2 * var(--lineHeight));
+  height: calc(4 * var(--lineHeight));
   line-height: var(--lineHeight);
   margin: calc(50vh - var(--lineHeight)) auto 0;
   font-size: var(--fontSize);
@@ -71,23 +58,25 @@ import { butterfliesBackground } from 'https://unpkg.com/threejs-toys@0.0.7/buil
 const pc = butterfliesBackground({
   el: document.getElementById('app'),
   eventsEl: document.body,
-  gpgpuSize: 5,
+  gpgpuSize: 2,
   background: 0x000,
-  material: 'standard',
-  materialParams: { transparent: true, wireframe: true,alphaTest: 0,opacity:1, metal:1,roughness: 0, clear:1, },
-  texture: 'https://i.ibb.co/SYp3mHn/butterflies.png',
+  material: 'phong',
+  texture: 'https://i.ibb.co/gFHLndb9/d.png',
   textureCount: 4,
-  wingsScale: [8.5, 1, 8.5],
-  wingsWidthSegments: 22,
-  wingsHeightSegments: 10, 
-  wingsSpeed: .12,
-  wingsDisplacementScale: 4.25,
+  wingsScale: [23.5, .2, 23.5],
+  wingsWidthSegments: 20,
+  wingsHeightSegments:12, 
+  wingsSpeed: .04,
+  wingsDisplacementScale: 140.25,
   noiseTimeCoef: 0.0005,
   noiseIntensity: .001,
-  attractionRadius1: 40, 
+  attractionRadius1: 10, 
   attractionRadius2: 990, 
-  maxVelocity: 1.1,
-})
+  maxVelocity: 34.1,
+    materialParams: { transparent: true, wireframe: false,alphaTest: 1,opacity:1, metal:1,roughness: 1, clear:1, },
+});
+
+
 </script>
 </body>
 </html>

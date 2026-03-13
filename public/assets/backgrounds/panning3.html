@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oxidized Copper Forest</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+        :root {
+            --verdigris-light: #A5F2E9;
+            --verdigris-main: #43B3AE;
+            --verdigris-dark: #2F807B;
+            --copper-raw: #B87333;
+            --copper-dark: #5C3A1A;
+            --oxidized-black: #0F1414;
+            --ui-light: #E0F7FA;
+            
+            --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--oxidized-black);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--ui-light);
+        }
+
+        /* --- MATERIALITY: GRAIN & TEXTURE --- */
+        .texture-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0.35;
+            filter: contrast(120%) brightness(110%);
+            mix-blend-mode: overlay;
+        }
+
+        /* --- LAYOUT: MAIN CONTAINER --- */
+        .viewport {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1a2a2a 0%, #2F807B 60%, #B87333 100%);
+            overflow: hidden;
+        }
+
+        /* --- CANVAS LAYERS --- */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            mix-blend-mode: multiply; /* Key for the 'ink' layering look */
+        }
+        
+        #layer-far { opacity: 0.6; mix-blend-mode: screen; filter: blur(1px); }
+        #layer-mid { opacity: 0.8; mix-blend-mode: normal; }
+        #layer-near { opacity: 1.0; mix-blend-mode: normal; }
+
+        /* --- ATMOSPHERE --- */
+        .atmosphere {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 30%, rgba(165, 242, 233, 0.1) 0%, rgba(19, 15, 20, 0.8) 90%);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .vignette {
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 150px rgba(0,0,0,0.8);
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        /* --- UI OVERLAY --- */
+        .hud {
+            position: absolute;
+            z-index: 10;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid rgba(165, 242, 233, 0.3);
+            padding-bottom: 1rem;
+        }
+
+        .hud-title h1 {
+            font-size: 3rem;
+            line-height: 0.9;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+            background: linear-gradient(to bottom, #fff, var(--verdigris-main));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .hud-meta {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--verdigris-light);
+            opacity: 0.8;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .data-block {
+            display: flex;
+            flex-direction: column;
+        }
+        .data-label {
+            opacity: 0.5;
+            font-size: 0.6rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .hud-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .speed-control {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .slider-container {
+            width: 200px;
+            height: 2px;
+            background: rgba(255,255,255,0.2);
+            position: relative;
+            cursor: pointer;
+            transition: height 0.3s ease;
+        }
+        .slider-container:hover {
+            height: 4px;
+        }
+
+        .slider-fill {
+            height: 100%;
+            background: var(--copper-raw);
+            width: 50%;
+            position: relative;
+        }
+        .slider-handle {
+            width: 10px;
+            height: 10px;
+            background: var(--ui-light);
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--verdigris-main);
+        }
+
+        .coordinates {
+            font-family: 'Space Mono', monospace;
+            text-align: right;
+            font-size: 0.8rem;
+        }
+
+        .blinking-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: var(--copper-raw);
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* SVG Filters setup */
+        .svg-filters { position: absolute; width: 0; height: 0; }
+
+    </style>
+</head>
+<body>
+
+    <!-- SVG Filters for Noise/Grain -->
+    <svg class="svg-filters">
+        <filter id="noise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/>
+            <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.5 0"/>
+        </filter>
+    </svg>
+
+    <!-- Main Viewport -->
+    <div class="viewport">
+        <!-- Texture Layer -->
+        <div class="texture-overlay" style="filter: url(#noise) grayscale(100%);"></div>
+        
+        <!-- Canvas Layers -->
+        <!-- Far: Sky/Clouds -->
+        <canvas id="layer-far"></canvas>
+        <!-- Mid: Hills/Distant Forest -->
+        <canvas id="layer-mid"></canvas>
+        <!-- Near: Detailed Silhouette -->
+        <canvas id="layer-near"></canvas>
+
+        <div class="atmosphere"></div>
+        <div class="vignette"></div>
+
+        <!-- UI -->
+        <div class="hud">
+            <div class="hud-header">
+                <div class="hud-title">
+                    <h1>Patina<br>Protocol</h1>
+                    <div class="hud-meta">
+                        <div class="data-block">
+                            <span class="data-label">BIOME</span>
+                            <span>CU-29 OXIDIZED</span>
+                        </div>
+                        <div class="data-block">
+                            <span class="data-label">STATUS</span>
+                            <span>GENERATIVE_Y</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hud-meta">
+                    <div class="data-block" style="text-align: right;">
+                        <span class="data-label">RENDER</span>
+                        <span>CANVAS.2D</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-footer">
+                <div class="speed-control">
+                    <span style="font-family: 'Space Mono'; font-size: 0.7rem; letter-spacing: 1px;">TRAVERSE VELOCITY</span>
+                    <div class="slider-container" id="speed-slider">
+                        <div class="slider-fill" id="speed-fill">
+                            <div class="slider-handle"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="coordinates">
+                    <span id="coord-x">X: 00492.84</span><br>
+                    <span id="coord-y">Y: 00112.42</span><span class="blinking-cursor"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const config = {
+            colors: {
+                sky: '#E0F7FA',
+                far: '#2F807B', // Oxidized Teal
+                mid: '#5C3A1A', // Dark Bronze
+                near: '#0F1414', // Blackened Metal
+                highlight: '#B87333' // Raw Copper
+            },
+            speed: 2,
+            baseSpeed: {
+                far: 0.2,
+                mid: 0.5,
+                near: 1.0
+            }
+        };
+
+        // --- UTILITIES ---
+        const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+        // Simple seeded random could go here, but Math.random is fine for visual chaos
+
+        // --- GENERATIVE FOREST ENGINE ---
+        class Layer {
+            constructor(canvasId, color, density, heightVar, speedMod, type) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.color = color;
+                this.density = density;
+                this.heightVar = heightVar;
+                this.speedMod = speedMod;
+                this.type = type; // 'mountains', 'hills', 'trees'
+                
+                this.offset = 0;
+                this.points = [];
+                this.width = 0;
+                this.height = 0;
+                
+                this.resize();
+                this.generatePoints();
+            }
+
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+                
+                // Regenerate if width changes significantly to fill screen
+                if(this.points.length === 0 || this.points[this.points.length-1].x < this.width * 2) {
+                    this.generatePoints();
+                }
+            }
+
+            generatePoints() {
+                // Ensure we have enough points to cover 2x screen width (for looping buffer)
+                let x = this.points.length > 0 ? this.points[this.points.length - 1].x : 0;
+                const groundY = this.height * (this.type === 'mountains' ? 0.4 : this.type === 'hills' ? 0.7 : 0.9);
+                
+                while (x < this.width * 2 + this.offset) {
+                    let w, h;
+                    
+                    if (this.type === 'mountains') {
+                        w = 100 + Math.random() * 200;
+                        h = 50 + Math.random() * 150;
+                        this.points.push({
+                            x: x, 
+                            y: groundY, 
+                            w: w, 
+                            h: h,
+                            peak: Math.random() // for jagged variation
+                        });
+                        x += w * 0.7; // Overlap
+                    } else if (this.type === 'hills') {
+                        w = 50 + Math.random() * 100;
+                        h = 30 + Math.random() * 80;
+                        this.points.push({x, y: groundY, w, h});
+                        x += w * 0.5;
+                    } else { // Trees
+                        w = 20 + Math.random() * 40; // Spacing
+                        h = 50 + Math.random() * this.heightVar;
+                        // Tree definition
+                        this.points.push({
+                            x: x, 
+                            y: groundY, 
+                            h: h, 
+                            w: 10 + Math.random() * 20, // Tree width
+                            lean: (Math.random() - 0.5) * 10,
+                            branches: Math.floor(Math.random() * 4)
+                        });
+                        x += w;
+                    }
+                }
+            }
+
+            update(globalSpeed) {
+                this.offset += globalSpeed * this.speedMod;
+                
+                // Cleanup points that have moved way off screen to the left
+                // Note: In a real infinite scroller, we'd remove from head and add to tail.
+                // For simplicity here, we reset offset if it gets too huge, or keep generating.
+                // Let's implement the infinite "treadmill"
+                
+                // If the first point is way off screen, remove it
+                if (this.points[0].x + 200 < this.offset) {
+                    this.points.shift();
+                }
+
+                // If the last point is coming onto the screen, generate more
+                const lastPoint = this.points[this.points.length - 1];
+                if (lastPoint.x - this.offset < this.width + 200) {
+                    this.generatePoints();
+                }
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                this.ctx.fillStyle = this.color;
+                this.ctx.beginPath();
+
+                if (this.type === 'mountains') {
+                    this.ctx.moveTo(0, this.height);
+                    for (let p of this.points) {
+                        const screenX = p.x - this.offset;
+                        // Draw jagged mountain
+                        this.ctx.lineTo(screenX, this.height);
+                        this.ctx.lineTo(screenX + p.w / 2, p.y - p.h);
+                        this.ctx.lineTo(screenX + p.w, this.height);
+                    }
+                    this.ctx.lineTo(this.width, this.height);
+                    this.ctx.fill();
+                    
+                } else if (this.type === 'hills') {
+                    this.ctx.moveTo(0, this.height);
+                    // Smooth curve approximation
+                    for (let i = 0; i < this.points.length - 1; i++) {
+                        const p = this.points[i];
+                        const nextP = this.points[i+1];
+                        const screenX = p.x - this.offset;
+                        
+                        // Simple blobs for hills
+                        this.ctx.ellipse(screenX, p.y, p.w, p.h, 0, Math.PI, 0); 
+                    }
+                    this.ctx.fill();
+
+                } else { // Trees (Silhouette style)
+                    // Draw ground line first
+                    this.ctx.rect(0, this.points[0].y, this.width, this.height - this.points[0].y);
+                    
+                    for (let p of this.points) {
+                        const screenX = p.x - this.offset;
+                        if (screenX < -100 || screenX > this.width + 100) continue;
+
+                        const trunkBase = p.y;
+                        const trunkTop = p.y - p.h;
+                        
+                        // Draw Trunk (Triangle shape for sharp geometric feel)
+                        this.ctx.moveTo(screenX - p.w/4, trunkBase);
+                        this.ctx.lineTo(screenX + p.lean, trunkTop);
+                        this.ctx.lineTo(screenX + p.w/4, trunkBase);
+                        
+                        // Branches / Foliage (Sharp Triangles)
+                        for(let i=1; i<=3; i++) {
+                            let size = p.w * (4-i);
+                            let yPos = trunkBase - (p.h * (i/3.5));
+                            this.ctx.moveTo(screenX - size, yPos);
+                            this.ctx.lineTo(screenX + p.lean, yPos - (p.h/3));
+                            this.ctx.lineTo(screenX + size, yPos);
+                        }
+                    }
+                    this.ctx.fill();
+                }
+            }
+        }
+
+        // --- INITIALIZATION ---
+        const layerFar = new Layer('layer-far', config.colors.far, 10, 200, config.baseSpeed.far, 'mountains');
+        const layerMid = new Layer('layer-mid', config.colors.mid, 20, 150, config.baseSpeed.mid, 'trees'); // Trees acting as hills
+        const layerNear = new Layer('layer-near', config.colors.near, 50, 300, config.baseSpeed.near, 'trees');
+
+        // --- LOOP ---
+        let frameCount = 0;
+        let globalX = 0;
+
+        function animate() {
+            // Update logic
+            layerFar.update(config.speed);
+            layerMid.update(config.speed);
+            layerNear.update(config.speed);
+            
+            globalX += config.speed;
+
+            // Draw logic
+            layerFar.draw();
+            layerMid.draw();
+            layerNear.draw();
+
+            // UI Update
+            if (frameCount % 10 === 0) {
+                document.getElementById('coord-x').innerText = `X: ${globalX.toFixed(2).padStart(8, '0')}`;
+                // Slight Y bob
+                const y = 112 + Math.sin(frameCount * 0.05) * 5;
+                document.getElementById('coord-y').innerText = `Y: ${y.toFixed(2).padStart(8, '0')}`;
+            }
+
+            frameCount++;
+            requestAnimationFrame(animate);
+        }
+
+        // --- INTERACTION ---
+        const slider = document.getElementById('speed-slider');
+        const fill = document.getElementById('speed-fill');
+        let isDragging = false;
+
+        slider.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            updateSpeed(e);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if(isDragging) updateSpeed(e);
+            
+            // Subtle parallax on mouse move
+            const moveX = (e.clientX - window.innerWidth/2) * 0.03;
+            const moveY = (e.clientY - window.innerHeight/2) * 0.05;
+            document.querySelector('.viewport').style.transform = `perspective(100px) rotateY(${moveX}deg) rotateX(${moveY}deg)`;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        function updateSpeed(e) {
+            const rect = slider.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            x = Math.max(0, Math.min(x, rect.width));
+            const percent = x / rect.width;
+            
+            fill.style.width = `${percent * 100}%`;
+            
+            // Map 0-1 to Speed 0-10
+            config.speed = percent * 10;
+        }
+
+        // Window Resize
+        window.addEventListener('resize', () => {
+            layerFar.resize();
+            layerMid.resize();
+            layerNear.resize();
+        });
+
+        // Start
+        animate();
+
+    </script>
+</body>
+</html>

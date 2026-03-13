@@ -19,7 +19,7 @@
             height: 100vh;
             font-family: 'Adso', sans-serif;
             color: white;
-            filter:blur(20px)brightness(3)contrast(2);
+            filter:blur(0px)brightness(1)contrast(1);
             animation:body 2s ease forwards;
         }
 
@@ -166,7 +166,7 @@
                 this.camera = new THREE.PerspectiveCamera(-875, aspect, 0.1, 1000);
                 this.camera.position.z = -0;
                 this.camera.position.y = 20;
-                this.camera.lookAt(0,-2,100);
+                this.camera.lookAt(0,0,10);
 
                 this.renderer = new THREE.WebGLRenderer({ 
                     antialias: true, 
@@ -247,10 +247,10 @@
                     positions[i3 + 2] = point.z;
 
                     colors[i3] = 0;      // R
-                    colors[i3 + 1] = 0.015;  // G
-                    colors[i3 + 2] = 0.01;  // B
+                    colors[i3 + 1] = 0.016;  // G
+                    colors[i3 + 2] = .02;  // B
 
-                    sizes[i] = 1.5 + Math.random() * 4.5;
+                    sizes[i] = 0.15 + Math.random() * 20.5;
                 }
 
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -262,6 +262,9 @@
                     vertexShader: vertexShader,
                     fragmentShader: fragmentShader,
                     blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                    side: THREE.DoubleSide,
+
                     depthTest: false,
                     transparent: false,
                     vertexColors: true
@@ -274,7 +277,10 @@
             updateParticles(deltaTime) {
                 // Rotation
                 this.particles.rotation.y += deltaTime * .0003;
-                this.camera.position.y += deltaTime /2000;
+                this.camera.position.x += Math.sin(deltaTime /200);
+                this.camera.position.y += Math.sin(deltaTime /2);
+                this.camera.position.z += Math.sin(deltaTime /200);
+                this.particles.position.y += Math.sin(deltaTime * Math.sin(200));
                 this.particles.rotation.x += deltaTime * .003;
                 this.particles.rotation.z += deltaTime * .00003 + Math.random() * .0001;
 
@@ -291,7 +297,7 @@
                     // Add swirling motion with individual speed
                     const time = this.animationTime - particle.offset;
                     const swirl = new THREE.Vector3(
-                        Math.sin(time * 1) * 1.5,  // Increased amplitude
+                        Math.sin(time * 1) * 21.5,  // Increased amplitude
                         Math.cos(time * 1) * 1.5,
                         Math.sin(time * 1) * 1.5
                     );

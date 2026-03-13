@@ -10,7 +10,7 @@
       "**/.*",
       "**/node_modules/**"
     ],
-     "headers": [
+    "headers": [
       {
         "source": "**",
         "headers": [
@@ -20,11 +20,23 @@
           }
         ]
       }
-    ],  
+    ],
     "rewrites": [
       {
-        "source": "/zymphony/**",
-        "destination": "/apps/zymphony/zynth-app/build/index.html"
+        "source": "/ipod",
+        "destination": "/apps/iPodAlex.html"
+      },
+      {
+        "source": "/ipod/**",
+        "destination": "/apps/iPodAlex.html"
+      },
+      {
+        "source": "/zynth",
+        "destination": "/apps/zynth/build/index.html"
+      },
+      {
+        "source": "/zynth/**",
+        "destination": "/apps/zynth/build/index.html"
       }
     ]
   }

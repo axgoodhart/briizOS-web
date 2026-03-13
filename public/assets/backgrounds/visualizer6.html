@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Granular Parchment MIDI Stratification</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;800&family=JetBrains+Mono:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --paper-base: #f1ede4;
+            --paper-shadow: #dcd3c1;
+            --ink: #1a1a1a;
+            --accent: #c44536;
+            --strata-1: rgba(220, 211, 193, 0.4);
+            --strata-2: rgba(196, 182, 155, 0.3);
+            --strata-3: rgba(166, 141, 109, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: crosshair;
+        }
+
+        body {
+            background-color: var(--paper-base);
+            color: var(--ink);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* The Granular Filter */
+        .grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.5;
+            filter: contrast(150%) brightness(100%);
+        }
+
+        /* Main UI Container */
+        .stage {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            padding: 60px;
+            gap: 40px;
+            z-index: 10;
+        }
+
+        .sidebar {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            mix-blend-mode: multiply;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 4rem;
+            line-height: 0.9;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .metadata {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-top: 1px solid var(--ink);
+            padding-top: 20px;
+        }
+
+        .metadata-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .metadata-val {
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        /* Visualizer Stratification */
+        .stratified-canvas-container {
+            position: relative;
+            flex-grow: 1;
+            background: var(--paper-shadow);
+            overflow: hidden;
+            border-radius: 2px;
+            box-shadow: 
+                inset 10px 10px 40px rgba(0,0,0,0.05),
+                20px 20px 60px rgba(0,0,0,0.1);
+        }
+
+        .strata-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Layer Depth effects */
+        .layer-0 { z-index: 1; background: var(--strata-1); clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%); }
+        .layer-1 { z-index: 2; background: var(--strata-2); clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 85%); opacity: 0.6; }
+        .layer-2 { z-index: 3; filter: url(#roughEdges); }
+
+        .midi-note {
+            position: absolute;
+            height: 4px;
+            background: var(--ink);
+            mix-blend-mode: multiply;
+            border-radius: 1px;
+            transition: transform 0.1s linear;
+            box-shadow: 1px 1px 0px rgba(255,255,255,0.4);
+        }
+
+        .midi-note::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            filter: blur(4px);
+            opacity: 0.3;
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            bottom: 60px;
+            right: 60px;
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .btn {
+            background: none;
+            border: 1px solid var(--ink);
+            padding: 12px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            background: var(--ink);
+            color: var(--paper-base);
+            transform: translateY(-2px);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: left 0.4s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        /* Stratum Progress Bar */
+        .progress-stratum {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            width: 0%;
+            z-index: 200;
+        }
+
+        svg {
+            position: absolute;
+            width: 0;
+            height: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SVG Noise & Filters -->
+    <svg>
+        <filter id="grainy">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+            <feColorMatrix type="matrix" values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 1 0" />
+        </filter>
+        <filter id="roughEdges">
+            <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="5" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" />
+        </filter>
+    </svg>
+
+    <div class="grain-overlay" style="background: url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E');"></div>
+
+    <div class="stage">
+        <div class="sidebar">
+            <div class="header-group">
+                <h1>Strata<br>Audio</h1>
+                <p style="font-size: 0.9rem; line-height: 1.4; opacity: 0.7;">An archaeological deconstruction of MIDI performance through parchment stratification.</p>
+            </div>
+
+            <div class="metadata">
+                <div class="metadata-row">
+                    <span>Registry</span>
+                    <span class="metadata-val">#882-91</span>
+                </div>
+                <div class="metadata-row">
+                    <span>Tempo</span>
+                    <span class="metadata-val" id="tempo-val">124 BPM</span>
+                </div>
+                <div class="metadata-row">
+                    <span>Key Scale</span>
+                    <span class="metadata-val">C-Minor / Aeolian</span>
+                </div>
+                <div class="metadata-row">
+                    <span>Resolution</span>
+                    <span class="metadata-val">PPQ 480</span>
+                </div>
+                <div class="metadata-row" style="margin-top: 20px;">
+                    <span>Active Voices</span>
+                    <span class="metadata-val" id="voice-count">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stratified-canvas-container" id="canvas-wrap">
+            <div class="strata-layer layer-0"></div>
+            <div class="strata-layer layer-1"></div>
+            <div class="strata-layer layer-2" id="note-plane"></div>
+            <div class="progress-stratum" id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="togglePlayback()" id="play-btn">Initialize</button>
+        <button class="btn" onclick="resetVisuals()">Clear Strata</button>
+    </div>
+
+    <script>
+        const notePlane = document.getElementById('note-plane');
+        const voiceCountDisplay = document.getElementById('voice-count');
+        const progressBar = document.getElementById('progress-bar');
+        const playBtn = document.getElementById('play-btn');
+        
+        let isPlaying = false;
+        let progress = 0;
+        let activeNotes = [];
+        let animationFrame;
+
+        // Simulate MIDI Data
+        function createNote() {
+            if (!isPlaying) return;
+
+            const note = document.createElement('div');
+            note.className = 'midi-note';
+            
+            const pitch = Math.floor(Math.random() * 80) + 10; // Vertical position
+            const duration = Math.random() * 150 + 50; // Width
+            const speed = 2 + Math.random() * 2;
+            
+            note.style.top = `${pitch}%`;
+            note.style.width = `${duration}px`;
+            note.style.right = `-200px`;
+            note.style.opacity = (Math.random() * 0.5) + 0.5;
+            
+            notePlane.appendChild(note);
+            
+            let pos = -duration;
+            const move = () => {
+                if (!isPlaying) {
+                    note.remove();
+                    return;
+                }
+                pos += speed;
+                note.style.transform = `translateX(${-pos}px)`;
+                
+                if (pos < window.innerWidth + duration) {
+                    requestAnimationFrame(move);
+                } else {
+                    note.remove();
+                }
+            };
+            
+            requestAnimationFrame(move);
+            updateVoices();
+        }
+
+        function updateVoices() {
+            const count = notePlane.childElementCount;
+            voiceCountDisplay.innerText = count;
+        }
+
+        function togglePlayback() {
+            isPlaying = !isPlaying;
+            playBtn.innerText = isPlaying ? "Suspend" : "Initialize";
+            
+            if (isPlaying) {
+                simulatePerformance();
+                updateProgress();
+            }
+        }
+
+        function simulatePerformance() {
+            if (!isPlaying) return;
+            
+            // Randomly "play" notes
+            if (Math.random() > 0.7) {
+                createNote();
+            }
+            
+            setTimeout(simulatePerformance, 100 + Math.random() * 300);
+        }
+
+        function updateProgress() {
+            if (!isPlaying) return;
+            progress += 0.05;
+            if (progress > 100) progress = 0;
+            progressBar.style.width = `${progress}%`;
+            requestAnimationFrame(updateProgress);
+        }
+
+        function resetVisuals() {
+            notePlane.innerHTML = '';
+            progress = 0;
+            progressBar.style.width = '0%';
+        }
+
+        // Add a parallax effect to strata on mouse move
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth) - 0.5;
+            const y = (e.clientY / window.innerHeight) - 0.5;
+            
+            document.querySelector('.layer-0').style.transform = `translate(${x * 10}px, ${y * 10}px)`;
+            document.querySelector('.layer-1').style.transform = `translate(${x * -20}px, ${y * -20}px)`;
+        });
+
+        // Hover effect for the sidebar to reveal "ink" depth
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.addEventListener('mouseenter', () => {
+            sidebar.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
+            sidebar.style.transform = 'translateX(10px)';
+        });
+        sidebar.addEventListener('mouseleave', () => {
+            sidebar.style.transform = 'translateX(0px)';
+        });
+
+    </script>
+</body>
+</html>

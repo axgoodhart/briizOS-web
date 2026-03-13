@@ -31,7 +31,7 @@ class ContextProvider {
 
 ## Active Panels (${ctx.panels.count})
 ${ctx.panels.list.length === 0 ? 'No panels currently active.' : ctx.panels.list.map(p =>
-  `- ${p.type}: "${p.title}" ${p.minimized ? '(minimized)' : ''}`
+  `- ${p.type}: "${p.title}" ${p.minimized ? '(minimized)' : ''}${p.preview ? `\n  Preview: ${p.preview}` : ''}`
 ).join('\n')}
 
 ## Recent Tasks (${ctx.tasks.count})
@@ -75,14 +75,21 @@ ${ctx.events.list.length === 0 ? 'No upcoming events.' : ctx.events.list.slice(0
     const panelManager = window.panelManager;
     const minimized = panelManager ? panelManager.minStack || [] : [];
 
-    const list = activePanels.map(p => ({
-      id: p.id,
-      type: p.type,
-      title: p.title || 'Untitled',
-      minimized: minimized.includes(String(p.id)),
-      position: { x: p.x, y: p.y },
-      size: { w: p.w, h: p.h }
-    }));
+    const list = activePanels.map(p => {
+      const info = {
+        id: p.id,
+        type: p.type,
+        title: p.title || 'Untitled',
+        minimized: minimized.includes(String(p.id)),
+        position: { x: p.x, y: p.y },
+        size: { w: p.w, h: p.h }
+      };
+      // Include a content preview for note panels so the AI knows what's in them
+      if (p.type === 'note' && p.content) {
+        info.preview = p.content.substring(0, 120) + (p.content.length > 120 ? '...' : '');
+      }
+      return info;
+    });
 
     return {
       count: activePanels.length,
@@ -98,7 +105,7 @@ ${ctx.events.list.length === 0 ? 'No upcoming events.' : ctx.events.list.slice(0
       (item.type === 'task' || (item.type === 'note' && item.due))
     );
 
-    const activeTasks = tasks.filter(t => !t.completed);
+    const activeTasks = tasks.filter(t => !t.completedAt && t.status !== 'done');
     const sorted = activeTasks.sort((a, b) => {
       const dateA = new Date(a.due || a.scheduledDate || '2100-01-01');
       const dateB = new Date(b.due || b.scheduledDate || '2100-01-01');

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Selector</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: url('https://static.wixstatic.com/media/58c99c_82bc6dcf20134df4ac2cfb84c8f10480~mv2.png') no-repeat center center fixed;
+            background-size: cover;
+            transition: background 0.7s ease-in-out;
+        }
+        .selector {
+            position: fixed;
+            top: 10%;
+            right: 2%;
+            background: rgba(22, 31, 45, 0.75);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.726);
+            display: flex;
+            border: 4px inset #0aff3b;
+            align-items: center;
+            gap: 30px;
+            overflow: hidden;
+            max-width: 60%;
+            visibility: hidden;
+            z-index: 1000; /* Add a high z-index to ensure it’s on top */
+
+        }
+        .thumbnail-container {
+    display: flex;
+    overflow-x: auto;
+    width: 35%px;
+    height: fit-content;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+}
+.thumbnail-container::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari and Opera */
+}        .selector img {
+            width: 200px;
+            height: 120px;
+            gap: 60px;
+            border: 4px solid transparent;
+            margin: 10px;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        .selector img:hover {
+            transform: scale(1.05);
+            border-color: #ffffff8e;
+        }
+        .selector img.selected {
+            border-color: #00FF00;
+        }
+        .change-arrow {
+            font-size: 0.4em;
+            cursor: pointer;
+            color: #00FF00;
+        }
+        @keyframes glow {
+            0% { text-shadow: 0 0 5px #00FF00; }
+            100% { text-shadow: 0 0 20px #00FF00; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="selector" id="background-selector">
+    <span class="change-arrow" onclick="scrollLeft()">&#8678;</span>
+    <div class="thumbnail-container" id="thumbnail-container">
+      <!-- Your existing image list -->
+      <img src="https://static.wixstatic.com/media/58c99c_82bc6dcf20134df4ac2cfb84c8f10480~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_704c0cc6bd534a1e96f60770e5c7ef3b~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_819a80d0edac4983b8c308b51acfa863~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_1611efb2959d4fbd8424cd8cc866341a~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_54563d1482614386b8a5f627319cca24~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_231826c2d3e0476f8f98af51b98c1f72~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_3397053c3aa54eaaa4807edfb43b615c~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_32089165da6e4c508fb100ff17b3dd08~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_612494990fb94a80aec6523a7c4443ef~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_77917697885642a8990363484c399d1f~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_1355215818934749a9709ed27df9e6ce~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_a3b3fd9f45994ae7a1c314c12b0bfe22~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_a65505614f174901980d3f2d87967d9d~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_aa438eafa8644324a5b8f7facfa1e5de~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_ad82c4bc02e74222b16f82888396362~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_a45685a014437d814c5ae795cbbd7e~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_b5ff2cc5b3874b72a46f85fa5f0d437c~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_bc6d7d419b13460d8e94c001e4366a91~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_c77a6296a3ce4026a5bd752ae00ad470~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_c308e6adacdf4fdf8f4d49a2fecf4f1~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_cf45aac0a634892819a970b5c6aafcb~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_d19a72a025b446894381965ae2cd4bd~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_d2824c7c8c44649219e119dda92564~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_dd550ce406c8449d97adfde857590a82~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_e0d01ee82a3c41a7ab73abd9a175372d~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_e9bdce93588d42a2af1efOba6a8ee944~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_e695db92f5c946a98c1444d8e6249d29~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_ea0d98d2134444349b6c9aa89db2ddde~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_ea480b2696964ab6801432afdab1862a~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_f1fe6d0797bc4ba99cf8566940d4399~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_f011b6dcd51640009cdab0021b8db38e~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_f69ff41729484a298ed8e4ce3dce8448~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_f6103ea72d5e4b7e8be178328508220c~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_0e0e6c8ff9eb4ab09acb0b37e946573b~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_2ad4cbc36f264676a4c32d48d4774645~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_2ce5dfdcf3ee42629be413ecc18fec3c~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_2d52d1abbbfa486d926c2277dfd1c1ac~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_2d42841c84c0401bae996fc2bcc3631a~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_3e44712ef9e743a7bc13d21cef94c838~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_4dc74b02e0ae432ab8c0f56a8ee0282c~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_5d81aedfc5244a0582233ac09c0f8be5~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_5dcbb7ef5fd24762b2a1139de87d90d5~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_5ea0980e6cde4c40a4e8eb999999b66e~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_6c34d773762f42f98515138c5212b8ea~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_6ce4cd076f8b4930bf72c0141e2fa6e9~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_7ae1cf89bf2a4675a796d1303fc2e2eb~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_8af2d36e8771486eb74804a451f3ea7b~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_8b0709d6a69454485141d11e0655c8c~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_8dd67ef9e4ce4079ad2c1bf3421c73a1~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_9d8b02214f91450da4cde695a8c639bf~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_9de80f25380a4d45bd789534a1938979~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_17fd4d118a5f4aa99d4602138c4fd814~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_19a4932d4b6b478d973325a4e2e15b7d~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_25dfb8d2011140feaf880692d6f4d984~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_28cc167e074f4de1aaba0f7abf8984c8~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_30cee535df7446b28f6190024c73c5e5~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_36ca7bcd077246efa5b2d75eeef3e402~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_037b608e50a448789bc1d24cd862db7f~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_37d1c3eff34a499aba2901cc9f95132b~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_47cb5a212d88451289e669160791a4ad~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_48ceb427a813441f9326cf33125cc19d~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_54a134f7f0a946b88f1927843fd27b71~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_56f0987ccb0944e5a5b20c1b5f0fed53~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_66be6ec0259447a69df35e642204212e~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_068fc8f526a64147aa76e0bb8f4da12e~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_71d8e91a0a864ef885dbeba029d8357d~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_71fddf5236154b579c75b6e6c67acfd2~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_73c8fc892a0242f9912e1981c0064f45~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+      <img src="https://static.wixstatic.com/media/58c99c_75f2fe26ddc14ef2a8134e8abb7ff1ab~mv2.png" alt="Background 1" onclick="changeBackground(this.src)">
+    </div>
+    <span class="change-arrow" onclick="scrollRight()">&#8680;</span>
+</div>
+
+<div id="emoji-container"></div>
+
+<script>
+    let currentBackground = 'https://i.imgur.com/jpaUTeY.jpeg';
+
+    function scrollLeft() {
+        const container = document.getElementById('thumbnail-container');
+        container.scrollLeft -= 500;
+    }
+
+    function scrollRight() {
+        const container = document.getElementById('thumbnail-container');
+        container.scrollLeft += 500;
+    }
+
+    function changeBackground(imageUrl) {
+        if (currentBackground !== imageUrl) {
+            document.body.style.backgroundImage = `url(${imageUrl})`;
+            currentBackground = imageUrl;
+            updateSelected(imageUrl);
+        }
+    }
+
+    function updateSelected(imageUrl) {
+        const images = document.querySelectorAll('.selector img');
+        images.forEach(img => {
+            if (img.src === imageUrl) {
+                img.classList.add('selected');
+            } else {
+                img.classList.remove('selected');
+            }
+        });
+    }
+
+
+    // Simplified scroll handling
+    const thumbnailContainer = document.getElementById('thumbnail-container');
+    thumbnailContainer.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        thumbnailContainer.scrollLeft += event.deltaY;
+    });
+
+    function addClockAndCameraEmojis() {
+        const emojiContainer = document.getElementById('emoji-container');
+        emojiContainer.style.position = 'fixed';
+        emojiContainer.style.top = '20px';
+        emojiContainer.style.right = '20px';
+        emojiContainer.style.display = 'flex';
+        emojiContainer.style.alignItems = 'center';
+        emojiContainer.style.zIndex = '10001';
+
+        const cameraEmoji = document.createElement('div');
+        cameraEmoji.textContent = '📷';
+        cameraEmoji.style.fontSize = '30px';
+        cameraEmoji.style.cursor = 'pointer';
+        cameraEmoji.style.marginRight = '10px';
+
+        cameraEmoji.addEventListener('click', () => {
+            const selector = document.getElementById('background-selector');
+            selector.style.visibility = 'visible';
+        });
+
+        emojiContainer.appendChild(cameraEmoji);
+    }
+
+    addClockAndCameraEmojis();
+</script>
+
+</body>
+</html>

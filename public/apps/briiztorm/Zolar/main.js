@@ -26,10 +26,10 @@ scene.background = new THREE.Color(0x000814);
 scene.fog = new THREE.Fog(0x000814, 180, 250);
 
 const camera = new THREE.PerspectiveCamera(
-  75,
+  25,
   window.innerWidth / window.innerHeight,
   0.1,
-  1000
+  10000
 );
 
 // Renderer
@@ -46,10 +46,14 @@ document.body.appendChild(renderer.domElement);
 // Controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = .008;
+controls.dampingFactor = .08;
 controls.rotateSpeed = .3;
-controls.zoomSpeed = 8;
+controls.zoomSpeed = 2;
 controls.panSpeed = 5;
+// alow zooming, panning, rotation
+controls.enableZoom = true;
+controls.enablePan = true;
+controls.enableRotate = true;
 
 // Texture Loader
 const loader = new THREE.TextureLoader();
@@ -1495,18 +1499,9 @@ function animate() {
   updateMoonLabels();
   
   const distanceToSun = camera.position.distanceTo(sun.position);
-  const maxDistance = 100;
-  const minDistance = 10;
-  const normalizedDistance = Math.max(0, Math.min(1, (distanceToSun - minDistance) / (maxDistance - minDistance)));
-  
-  if (bloomPass && !isBloomManual) {
-    bloomPass.strength = 0.5 + (1 - normalizedDistance) * 1.0;
-    bloomPass.radius = 0.6 + (1 - normalizedDistance) * 0.4;
-  } else if (bloomPass && isBloomManual) {
-    bloomPass.strength = manualBloomStrength;
-    bloomPass.radius = 0.6 + (1 - normalizedDistance) * 0.2;
-  }
-  
+  const maxDistance = 10000;
+  const minDistance = 0.1;
+ 
   try {
     composer.render();
   } catch (error) {
@@ -3319,3 +3314,44 @@ window.addEventListener('message', (event) => {
 
 // Eager READY signal for parent once scene is live enough to accept commands
 try { window.parent?.postMessage({ type: 'ZOLAR_READY' }, '*'); } catch {}
+
+// Initialize the Scene Controller if available
+if (typeof window.ZolarSceneController !== 'undefined') {
+  // Pass the necessary objects to the controller
+  const sceneController = new window.ZolarSceneController(
+    scene,
+    camera,
+    controls,
+    planets,
+    composer
+  );
+
+  // Store it globally for access
+  window.sceneController = sceneController;
+
+  // Integrate with animation loop
+  const originalAnimate = animate;
+  function animate(time) {
+    // Apply controller's animation speed
+    if (sceneController) {
+      const speed = sceneController.getAnimationSpeed();
+      // Modify animation speed based on controller setting
+      if (speed !== undefined) {
+        // Apply speed multiplier to planet rotations and orbits
+        Object.values(planets).forEach(planet => {
+          if (planet.userData && planet.userData.originalSpeed === undefined) {
+            planet.userData.originalSpeed = planet.userData.rotationSpeed || 0.001;
+          }
+          if (planet.userData && planet.userData.originalSpeed) {
+            planet.userData.rotationSpeed = planet.userData.originalSpeed * speed;
+          }
+        });
+      }
+    }
+
+    // Call original animate
+    originalAnimate(time);
+  }
+
+  console.log('✨ Scene Controller initialized and integrated');
+}

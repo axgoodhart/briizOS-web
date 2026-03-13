@@ -34,6 +34,16 @@ class BriizOSTools {
       }
     });
 
+    this.register('lookupOnline', this.lookupOnline, {
+      requiresConfirmation: false,
+      description: 'Search the web for information and optionally create a panel with results',
+      parameters: {
+        query: { type: 'string', description: 'Search query' },
+        target: { type: 'string', description: 'Where to display results: "chat" (default), "new-panel", or panel ID/title', optional: true },
+        source: { type: 'string', description: 'Specific source to search (e.g., "wikipedia", "news")', optional: true }
+      }
+    });
+
     this.register('findScheduleConflicts', this.findScheduleConflicts, {
       requiresConfirmation: false,
       description: 'Find overlapping events in schedule',
@@ -78,11 +88,12 @@ class BriizOSTools {
     // Calendar tools
     this.register('createSingleCalendarEvent', this.createSingleCalendarEvent, {
       requiresConfirmation: true,
-      description: 'Create a single one-time calendar event',
+      description: 'Create a single one-time calendar event with optional start time and duration',
       parameters: {
         title: { type: 'string', description: 'Event title' },
         date: { type: 'string', description: 'Event date in YYYY-MM-DD format' },
-        time: { type: 'string', description: 'Optional time (e.g., "9:00am")', optional: true }
+        time: { type: 'string', description: 'Optional start time (e.g., "9am", "2:30pm", "14:00")', optional: true },
+        duration: { type: 'number', description: 'Optional duration in minutes (default 60)', optional: true }
       }
     });
 
@@ -101,7 +112,11 @@ class BriizOSTools {
       description: 'Create a new recurring calendar event',
       parameters: {
         title: { type: 'string', description: 'Event title' },
-        recurrence_rule: { type: 'string', description: 'Natural language recurrence (e.g., "every thursday at 9am")' }
+        recurrence_type: { type: 'string', description: 'Recurrence type: "weekly" or "monthly"' },
+        days_of_week: { type: 'array', description: 'Days of week as numbers (0=Sun, 1=Mon, ..., 6=Sat). Required for weekly.' },
+        start_date: { type: 'string', description: 'Start date in YYYY-MM-DD format', optional: true },
+        time: { type: 'string', description: 'Optional start time (e.g., "9am", "2:30pm", "14:00")', optional: true },
+        duration: { type: 'number', description: 'Optional duration in minutes (default 60)', optional: true }
       }
     });
 
@@ -138,10 +153,11 @@ class BriizOSTools {
 
     this.register('updateNoteContent', this.updateNoteContent, {
       requiresConfirmation: true,
-      description: 'Update the content of a note panel',
+      description: 'Update the content of a note panel. Appends by default; use mode "replace" to overwrite.',
       parameters: {
         panel_id: { type: 'string', description: 'Panel ID or title' },
-        new_content: { type: 'string', description: 'New content to set' }
+        new_content: { type: 'string', description: 'Content to add (or full replacement if mode is "replace")' },
+        mode: { type: 'string', description: '"append" (default) or "replace"', optional: true }
       }
     });
 
@@ -306,6 +322,46 @@ class BriizOSTools {
     }));
   }
 
+  // ========== HELPERS ==========
+
+  // Parse a time string like "2:00pm", "14:00", "9am", "13:30" into minutes since midnight.
+  // Returns null if unparseable.
+  parseTimeString(str) {
+    if (str == null) return null;
+    // If already a number, treat as minutes since midnight
+    if (typeof str === 'number') return str;
+    str = String(str).trim().toLowerCase();
+
+    // Try 24h format: "14:00", "9:30"
+    let match = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (match) {
+      return parseInt(match[1]) * 60 + parseInt(match[2]);
+    }
+
+    // Try 12h format: "2:00pm", "9am", "12:30 am"
+    match = str.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+    if (match) {
+      let hours = parseInt(match[1]);
+      const minutes = parseInt(match[2] || '0');
+      const period = match[3];
+      if (period === 'pm' && hours !== 12) hours += 12;
+      if (period === 'am' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    }
+
+    return null;
+  }
+
+  // Format minutes since midnight into a readable string like "2:00 PM"
+  formatTime(minutes) {
+    if (minutes == null) return '';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  }
+
   // ========== TOOL IMPLEMENTATIONS ==========
 
   // 1. Get Schedule Summary
@@ -427,11 +483,48 @@ class BriizOSTools {
     };
   }
 
+  // 2b. Lookup Online (Web Search)
+  async lookupOnline(params) {
+    const { query, target = 'chat', source } = params;
+
+    // For now, this is a placeholder implementation
+    // In production, this would connect to a web search API (Google, DuckDuckGo, etc.)
+    const searchInfo = `Searching for: "${query}"${source ? ` on ${source}` : ''}`;
+
+    // Create a formatted response
+    const response = {
+      success: true,
+      query: query,
+      summary: `I would search the web for "${query}"${source ? ` on ${source}` : ''}, but web search API integration is not yet configured. To enable this feature, connect a web search API (Google Custom Search, SerpAPI, or DuckDuckGo) in the backend.`
+    };
+
+    // Handle different targets
+    if (target === 'new-panel' || (target && target !== 'chat')) {
+      // Create a note panel with the search information
+      const panelTitle = target === 'new-panel' ? `Search: ${query.substring(0, 30)}${query.length > 30 ? '...' : ''}` : target;
+
+      if (window.panelManager && typeof window.panelManager.createNewPanel === 'function') {
+        const content = `# Search Query: ${query}\n\n${source ? `Source: ${source}\n\n` : ''}**Note:** Web search API integration needed. This panel is a placeholder for search results.\n\nTo implement:\n1. Connect to a web search API (Google Custom Search, SerpAPI, or DuckDuckGo)\n2. The results will automatically populate here`;
+
+        await window.panelManager.createNewPanel('note', panelTitle, {
+          content: content,
+          source: 'ai-assistant'
+        });
+
+        response.panelCreated = true;
+        response.panelTitle = panelTitle;
+        response.summary = `Created panel "${panelTitle}" with search query. Configure web search API to populate results.`;
+      }
+    }
+
+    return response;
+  }
+
   // 3. Find Schedule Conflicts
   async findScheduleConflicts(params) {
     const { time_range = 'all' } = params;
     const items = window.OrganizerStore?.items || [];
-    const events = items.filter(item => item.type === 'event' && item.scheduledDate);
+    const events = items.filter(item => item.type === 'event' && (item.scheduledDate || item.dateValue));
 
     const conflicts = [];
 
@@ -441,15 +534,32 @@ class BriizOSTools {
         const event1 = events[i];
         const event2 = events[j];
 
-        // Check if they overlap (simple date comparison for now)
-        const date1 = event1.scheduledDate || event1.due;
-        const date2 = event2.scheduledDate || event2.due;
+        const date1 = event1.scheduledDate || event1.dateValue;
+        const date2 = event2.scheduledDate || event2.dateValue;
 
-        if (date1 === date2) {
+        // Events must be on the same date to conflict
+        if (date1 !== date2) continue;
+
+        // If both have time info, check for time overlap
+        if (event1.start != null && event2.start != null) {
+          const end1 = event1.end || (event1.start + (event1.duration || 60));
+          const end2 = event2.end || (event2.start + (event2.duration || 60));
+          // Overlap check: start1 < end2 AND start2 < end1
+          if (event1.start < end2 && event2.start < end1) {
+            conflicts.push({
+              event1: event1.name || 'Untitled',
+              event2: event2.name || 'Untitled',
+              date: date1,
+              timeOverlap: true
+            });
+          }
+        } else {
+          // No time info on one or both - flag as potential conflict on same day
           conflicts.push({
             event1: event1.name || 'Untitled',
             event2: event2.name || 'Untitled',
-            date: date1
+            date: date1,
+            timeOverlap: false
           });
         }
       }
@@ -460,7 +570,7 @@ class BriizOSTools {
     }
 
     const summary = conflicts.map(c =>
-      `${c.date}: "${c.event1}" conflicts with "${c.event2}"`
+      `${c.date}: "${c.event1}" conflicts with "${c.event2}"${c.timeOverlap ? ' (time overlap)' : ' (same day)'}`
     ).join('\n');
 
     return {
@@ -560,10 +670,10 @@ class BriizOSTools {
     const { criteria } = params;
     const items = window.OrganizerStore?.items || [];
 
-    // Filter tasks based on criteria
+    // Filter tasks based on criteria (use completedAt/status from current schema)
     let tasks = items.filter(item =>
       (item.type === 'task' || item.type === 'note') &&
-      item.completed !== true
+      !item.completedAt && item.status !== 'done'
     );
 
     // Parse criteria (simple implementation)
@@ -611,30 +721,35 @@ class BriizOSTools {
 
   // 8. Create Single Calendar Event
   async createSingleCalendarEvent(params) {
-    const { title, date, time } = params;
+    const { title, date, time, duration } = params;
 
     if (!window.OrganizerStore) {
       throw new Error('Organizer not available');
     }
 
-    // Create the event name with time if provided
-    const eventName = time ? `${title} (${time})` : title;
-
-    const event = window.OrganizerStore.create({
-      name: eventName,
+    const createArgs = {
+      name: title,
       type: 'event',
       scheduledDate: date,
-      dateMode: 'scheduled',
+      dateMode: 'event',
       dateValue: date,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
+      source: { mode: 'ai-assistant' }
+    };
 
-    window.OrganizerStore.save();
+    // Parse time string into minutes since midnight
+    const parsedTime = this.parseTimeString(time);
+    if (parsedTime != null) {
+      createArgs.timeStart = parsedTime;
+      createArgs.duration = duration || 60;
+    }
+
+    const event = window.OrganizerStore.create(createArgs);
+
+    const timeStr = parsedTime != null ? ` at ${this.formatTime(parsedTime)}` : '';
 
     return {
       success: true,
-      message: `Created event "${eventName}" on ${date}`,
+      message: `Created event "${title}" on ${date}${timeStr}`,
       eventId: event.id
     };
   }
@@ -660,11 +775,13 @@ class BriizOSTools {
     }
 
     // Update date
+    const now = Date.now();
     event.scheduledDate = new_date;
     event.dateValue = new_date;
-    event.updatedAt = Date.now();
+    event.updatedAt = now;
+    event.lastModified = now;
 
-    window.OrganizerStore.save();
+    window.OrganizerStore.upsert(event);
 
     return {
       success: true,
@@ -674,32 +791,52 @@ class BriizOSTools {
 
   // 10. Create Recurring Calendar Event
   async createRecurringCalendarEvent(params) {
-    const { title, recurrence_rule } = params;
+    const { title, recurrence_type, days_of_week, start_date, time, duration } = params;
 
     if (!window.OrganizerStore) {
       throw new Error('Organizer not available');
     }
 
-    // Parse recurrence rule (simple implementation)
-    // This would need more sophisticated parsing in production
     const todayStr = new Date().toISOString().split('T')[0];
+    const anchorDate = start_date || todayStr;
 
-    const event = window.OrganizerStore.create({
+    // Build proper recurrence object matching the schema
+    const endDate = new Date(anchorDate);
+    endDate.setFullYear(endDate.getFullYear() + 2);
+
+    const recurrence = {
+      enabled: true,
+      type: recurrence_type || 'weekly',
+      daysOfWeek: days_of_week || [new Date(anchorDate + 'T12:00:00').getDay()],
+      anchorDate: anchorDate,
+      endDate: endDate.toISOString().split('T')[0]
+    };
+
+    const createArgs = {
       name: title,
       type: 'event',
-      scheduledDate: todayStr,
-      dateMode: 'scheduled',
-      dateValue: todayStr,
-      recurrence: recurrence_rule, // Store as-is for now
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
+      scheduledDate: anchorDate,
+      dateMode: 'event',
+      dateValue: anchorDate,
+      recurrence: recurrence,
+      source: { mode: 'ai-assistant' }
+    };
 
-    window.OrganizerStore.save();
+    const parsedTime = this.parseTimeString(time);
+    if (parsedTime != null) {
+      createArgs.timeStart = parsedTime;
+      createArgs.duration = duration || 60;
+    }
+
+    const event = window.OrganizerStore.create(createArgs);
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const daysStr = (days_of_week || recurrence.daysOfWeek).map(d => dayNames[d]).join(', ');
+    const timeStr = parsedTime != null ? ` at ${this.formatTime(parsedTime)}` : '';
 
     return {
       success: true,
-      message: `Created recurring event "${title}" (${recurrence_rule})`,
+      message: `Created recurring event "${title}" (${recurrence_type || 'weekly'} on ${daysStr}${timeStr})`,
       eventId: event.id
     };
   }
@@ -815,7 +952,7 @@ class BriizOSTools {
 
   // 14. Update Note Content
   async updateNoteContent(params) {
-    const { panel_id, new_content } = params;
+    const { panel_id, new_content, mode } = params;
 
     const state = window.appState || window.state;
     if (!state || !state.panels) {
@@ -836,8 +973,13 @@ class BriizOSTools {
       throw new Error(`Panel "${panel.title}" is not a note panel (type: ${panel.type})`);
     }
 
-    // Update content
-    panel.content = new_content;
+    // Append by default, replace only if explicitly requested
+    if (mode === 'replace') {
+      panel.content = new_content;
+    } else {
+      const separator = panel.content && panel.content.trim() ? '\n\n' : '';
+      panel.content = (panel.content || '') + separator + new_content;
+    }
     panel.updatedAt = Date.now();
 
     // Refresh UI
@@ -850,9 +992,10 @@ class BriizOSTools {
       panel: { id: panel.id, title: panel.title, property: 'content' }
     });
 
+    const action = mode === 'replace' ? 'Replaced' : 'Appended to';
     return {
       success: true,
-      message: `Updated content for note "${panel.title}"`,
+      message: `${action} content for note "${panel.title}"`,
       panelId: panel.id
     };
   }
@@ -878,12 +1021,17 @@ class BriizOSTools {
       throw new Error(`Task "${task_id}" not found`);
     }
 
-    // Mark as completed
-    task.completed = true;
-    task.updatedAt = Date.now();
+    // Already completed?
+    if (task.completedAt || task.status === 'done') {
+      return {
+        success: true,
+        message: `Task "${task.name || 'Untitled'}" is already completed`,
+        taskId: task.id
+      };
+    }
 
-    // Save to storage
-    window.OrganizerStore.save();
+    // Use the proper toggleDone method which sets completedAt + status
+    window.OrganizerStore.toggleDone(task.id);
 
     // Emit event
     this.emitEvent('task.completed', {

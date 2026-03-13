@@ -12,42 +12,53 @@
    body {
       font-family: 'Jost Thin', sans-serif;
       background:black;
+      background-image:url('https://i.ibb.co/yBnsMsGv/briizbg6.png');
       justify-items:center;
+      animation:hueroto 10s linear forwards
     }
     
 @keyframes hot {
-  0%{opacity:0;text-shadow:0 0 1px transparent; color:black;}
-  50% {opacity:1;color:black;}
-  100% {opacity:1; text-shadow: 0 0 14px white}
+  0%,10%{opacity:0;text-shadow:0 0 1px transparent; color:transparent;line-height:200px;}
+  5%,15% {opacity:1;color:black;}
+  100% {opacity:1; text-shadow: 0 0 14px white;line-height:40px;
+  }
 }
 
-#orb{animation:hueroto 10s linear infinite}
 @keyframes hueroto {
-  0% {filter:hue-rotate(0deg)saturate(.85);opacity:0}
-  5% {filter:hue-rotate(42deg)saturate(.4)brightness(3);opacity:1;}
-  50% {opacity:1;} 
-  100% {filter:hue-rotate(360deg)saturate(.85);opacity:0}
+  0% {backdrop-filter:hue-rotate(0deg)saturate(.85)brightness(0);background-position:0% 0%;}
+  5% {backdrop-filter:hue-rotate(42deg)saturate(.4)brightness(0);opacity:1;}
+  50% {opacity:1;backdrop-filter:hue-rotate(152deg)saturate(2)brightness(0);; }
+  100% {backdrop-filter:hue-rotate(360deg)saturate(.85)brightness(.6);;background-position:100% 100%;}
 }
 
 @keyframes hueroto2 {  
-  0% {filter:hue-rotate(0deg)saturate(.85);opacity:1;transform:scale(.1)translate(-50%,-50%)rotate(-10000deg)}
-  10% {filter:hue-rotate(360deg)saturate(.85);opacity:1;transform:translate(-50%, -50%)scale(1)rotate(-400deg);}
+  0% {filter:hue-rotate(0deg)saturate(0);opacity:1;transform:scale(.01)translate(-50%,-50%)rotate(-10000deg)}
+  10% {filter:hue-rotate(360deg)saturate(.15);opacity:1;transform:translate(-50%, -50%)scale(2)rotate(-400deg);}
 
-  100% {filter:hue-rotate(0deg)saturate(5);opacity:.5;transform:translate(-50%, -50%)scale(0)rotate(1080deg)}
+  100% {filter:hue-rotate(0deg)saturate(.5);opacity:1;transform:translate(-50%, -50%)scale(0)rotate(1080deg)}
 }
     .PNF {
       position:absolute;
       top:0;
       left:0;
+      opacity: 0;
+
+      text-align:center;
+      width:100%;
       font-size:128px;
       color:yellow;
+      animation:hot 4s linear forwards;
+      animation-delay:9s;
     }
     #starpng {
-animation:hueroto2 20s cubic-bezier(0.0175, 0.285, 0.22,4) forwards;
+animation:hueroto2 6s cubic-bezier(0.0175, .001, 0.22,4) forwards;
       position:absolute;
+      image-rendering:optimizeQuality;
       top:50%;
       left:60%;
-      transform:scale(1)translate(-50%, -50%);
+      mix-blend-mode:color-dodge;;
+      animation-delay:7s;
+      transform:scale(.001)translate(-50%, -50%);
     }
 
     #four {
@@ -58,31 +69,35 @@ animation:hueroto2 20s cubic-bezier(0.0175, 0.285, 0.22,4) forwards;
       transform:translate(-50%, -50%);
       color:white;
       font-size:33rem;
+      animation:ltrs 13s cubic-bezier(.0001, .01, 0.22,4) forwards;
     }
-    img {
-      object-fit: cover;
-      position:absolute;
-      transform:scale(2);
-      height:100vh;
-      width:100vw;
-animation:hueroto 20s linear forwards;
-
+    @keyframes ltrs {
+      50% {letter-spacing:-33vw; transform:translate(-50%, -50%)rotate(-200deg);}
+    }
+    
+#pic{
+      object-fit:cover;
+      mix-blend-mode:multiply;
     }
   </style>
  </head>
 <body>
- <img  src="404bg.jpg" width="1920"/>
     <div class="PNF">
-     PAGE
-    <br>
-     NOT
-    <br>
-     FOUND
+      <br>
+      PAGE
+      <br>
+<br>
+
+      NOT
+<br>
+
+      <br>
+      FOUND
     </div>
     <div id="four">
      404
     </div>
-     <img src = "star.png" id="starpng">
+     <img src = "/assets/img/star.png" id="starpng">
     </div>
    </div>
   </div>

@@ -1,15 +1,18 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- CSP relaxed for Electron local app -->
 <meta http-equiv="Content-Security-Policy"
- content="default-src 'self' https://*.googleapis.com https://*.gstatic.com; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://unpkg.com https://apis.google.com https://accounts.google.com https://www.gstatic.com https://*.googleapis.com 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://accounts.google.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://*.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; frame-src * blob: data:;">
+ content="default-src 'self' https: file:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: file: blob: data:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' data: https: file:; connect-src 'self' https: wss:; frame-src * blob: data: file:;">
 <title>glOS - Operating System for Thoughts</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="modules/chat-module/chat-widget.css">
 <link rel="stylesheet" href="modules/chat-module/chat-settings.css">
+<link rel="stylesheet" href="modules/chat-module/job-panel.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 <!-- Markdown rendering -->
 <script src="https://unpkg.com/marked@11.1.1/marked.min.js"></script>
@@ -23,6 +26,17 @@
 <script src="modules/chat-module/system-prompt.js"></script>
 <script src="modules/chat-module/briizos-tools.js"></script>
 <script src="components/markdown-modal.js"></script>
+<!-- Electron API Detection -->
+<script>
+  // Detect if running in Electron (window.api is injected by preload.js)
+  window.isElectron = !!(window.api);
+  if (window.isElectron) {
+    console.log('[briizOS] Running in Electron - native APIs available');
+    console.log('[briizOS] Available APIs:', Object.keys(window.api));
+  } else {
+    console.log('[briizOS] Running in browser - using web APIs only');
+  }
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Oswald&display=swap');
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed&display=swap');
@@ -128,7 +142,7 @@ html {background:black;}
   .time-large { font-size: 72px;
  line-height: 1;
  width:340px;
- text-align:center;
+ text-align:right;
  font-weight:2;
 }
   .ml-3 { margin-left: 12px;
@@ -221,7 +235,6 @@ html {background:black;}
     font-size:2rem;
     color:rgba(251, 253, 254, 0.87);
     text-shadow:0 0 3px black;
-    filter:saturate(0);
     border: 1px solid rgba(255, 255, 255, .5);;
     border-radius:50%;
     text-align:center;
@@ -1098,7 +1111,8 @@ opacity:1;
     justify-content: center;
     cursor: pointer;
     height:40px;width:50px;
-    display:blocdk;transform:scale(1.2);
+    margin-left:12px;
+    display:block;transform:scale(1.5);
     background-size:cover;opacity:.7;
     transition:all .25s ease;
   }
@@ -2203,12 +2217,12 @@ text-transform:lowercase;
   }
   .cal-drag-wrap.lay:hover .cal-drag-handle { opacity: .85; pointer-events: auto; }
   .cal-panel {
-    width: min(1100px, 92vw);
- max-height: 52vh;;
- overflow: scroll;
+    width: min(1100px, 80vw);
+  height: 52vh;;
+ overflow: hidden;
  border-radius: 22px;
     border: 1px solid rgba(255,255,255,0.18);
-    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+    background: linear-gradient( lime, rgba(255,255,255,0.03) 2%);
     backdrop-filter: blur(14px) saturate(1.05);
     box-shadow: 0 8px 26px rgba(0,0,0,0.25);
     color: #fff;
@@ -2221,6 +2235,7 @@ text-transform:lowercase;
  transition: opacity .45s cubic-bezier(0.16,1,0.3,1), transform .45s cubic-bezier(0.16,1,0.3,1);
     cursor: grab;
     pointer-events: none;
+    resize:both;
   }
   .cal-panel.active { transform: none;
  opacity: 1;
@@ -2237,6 +2252,7 @@ text-transform:lowercase;
   .cal-title { font-family:Chillax, Josefin Sans,sans-serif;
  letter-spacing:.08em;
  font-size: 1.3rem;
+ width:30%;
  }
   .cal-actions { display:flex;
  gap: 8px;
@@ -2269,6 +2285,7 @@ margin-right:50px; padding: 6px 10px;
  gap: 8px;
  padding: 10px;
  opacity: 0;
+ background:linear-gradient(rgba(0, 0, 0, 0.437),rgba(0, 128, 128, 0.454));
  transform: translateY(8px) scale(.98);
  transition: opacity .45s cubic-bezier(0.16,1,0.3,1), transform .45s cubic-bezier(0.16,1,0.3,1);
  }
@@ -2327,11 +2344,11 @@ margin-right:50px; padding: 6px 10px;
   
   /* Daily event summary panel */
   #cal-daily {
-    background: rgba(0, 0, 0, 0.25);
     position: relative;
     max-height: 55vh;
     padding:7px;
-    overflow: auto;
+    overflow: visible;
+    text-wrap-mode:nowrap;
     backdrop-filter: blur(14px) saturate(1.05);
     color: #c7f0dd;
     border-radius: 14px;
@@ -2339,7 +2356,6 @@ margin-right:50px; padding: 6px 10px;
     border-radius:30px;
     z-index: 0;
     opacity: 0.5;z-index: 0;
-    height: 40px;width:80%;
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
 #cal-daily.mini {
@@ -2393,11 +2409,13 @@ margin-right:50px; padding: 6px 10px;
   
   #cal-daily .hdr { display:flex;
  align-items:center;
+ display:flex;
+ width:100%;
  font-size:20px;
  flex-direction:row;
- justify-content: space-between;
+ justify-content: flex-end;
  gap:4px;
- margin-top:-2px;
+ margin-top:0;
  margin-bottom: 16px;
  }
   #cal-daily .title { font-family:'Chillax','Josefin Sans', sans-serif;
@@ -2425,7 +2443,7 @@ margin-right:50px; padding: 6px 10px;
 #cal-daily-clone:hover {
   transform:rotateY(-5deg);
 }
-#cal-daily-clone > div.hdr, #current-date {
+#cal-daily-clone > div.hdr, #cal-daily-clone #current-date {
   text-align:center;
   color:yellow;
   font-size:18px;
@@ -2821,11 +2839,14 @@ background-color:rgb(123, 206, 255);}
   justify-content:center;
   color:white;
   text-shadow:0 0 1px white;
+  line-height:1;
 }
 .temp {
   font-weight:800;
   height:30px;
   text-align:center;
+  display:flex;
+  align-items:center;
 }
 #task-stats {
   margin-top:4px;
@@ -3028,9 +3049,8 @@ transform:scale(.171) translateY(20px); align-items:center;
     position: fixed;
 bottom:0px;
 padding-bottom:10px;
-height:56px;    left:50vw;
+height:76px;    left:50vw;
     width: 50vw;
-    height: calc(100vh - 220px);
     overflow-x:visible;
     z-index:2;
     transform: translateX(-50%);
@@ -3061,15 +3081,16 @@ top:0;
 
 #org-footer{
   position:absolute;
-  left:0;
+  left:-30px;
   bottom:0;
-  width:150px;
+  width:120px;
   height:100%;
   background:linear-gradient(to right, rgb(0, 82, 100),black 18%);
-  border-right:2.2px solid teal; 
+  border-right:1.2px solid teal; 
   z-index:200;
+  border-radius:0 12px 12px 0;
   flex-direction:column;
-  align-items:left;;
+  align-items:right;;
   display:flex;
   padding-top:10px;
   justify-content:space-between;
@@ -3220,7 +3241,7 @@ top:0;
   position:absolute;
   left:0;
 bottom:0;
-width:150px;
+width:110px;
 height:100%;
 background:linear-gradient(to right, rgb(0, 82, 100),black 18%);
 border-right:2.2px solid teal; 
@@ -3302,18 +3323,38 @@ padding: 24px;
 border-radius: 20px 0 0 20px;
 backdrop-filter: blur(5px);
 transition: all .45s ease;
-width:340px;
+width:fit-content;
+max-width:calc(100vw - 20px);
+align-items:flex-end;
+}
+#cal-prev, #cal-next {
+  font-size:40px;
+  font-family:Jost;
+  font-weight:5;
+  line-height:0;
+}
+#weather-display {
+display: flex;
+flex-direction: row;
+flex-wrap: nowrap;
+overflow:visible;
+width:fit-content;
+height:40px;;
+gap: 4px;
+align-items: center;
+justify-content: center;
+line-height:1;
 }
 #stack {
 display: flex;
-width: 340px;
+width: fit-content;
 align-items:center;
-justify-content:center;
+justify-content:flex-end;
 flex-direction: row;
 flex-wrap: nowrap;
 gap: 28px;}
 
-#cal-daily-title {
+#cal-daily-title, .cal-daily-title {
 font-size:34px; font-weight:600;text-align:center !important; justify-content: center !important;}
 .cal-month {
       display: flex;
@@ -3366,6 +3407,23 @@ bottom:0px}
 #settingsmodal > div.organizer-footer {
   background-color:rgba(0,10,10);
 }
+
+#version {
+    transition:all 1.2s ease;
+  color:rgba(0,200,0,0.9);
+  position:absolute;
+  bottom:0;
+  left:0;
+  font-size:12px;
+  padding:4px;
+  z-index:100000;
+  background:transparent;
+    color:teal;-webkit-text-stroke:.5px transparent;
+}
+
+#version:hover {
+  transition:all 2s ease;  font-size:34px;;
+}
 </style>
 </head>
 
@@ -3392,24 +3450,18 @@ bottom:0px}
   </div>
 
   <div class="wrap" id="headwrap">
-      <div class="time-large gradient-text" id="current-time">22:20</div>
-      <div class="stack"  id="stack">
-      <div id="thoughtstream-wrap">
-             <img class="checkin-button" id="stream-toggle-btn" src="https://i.imgur.com/PGpxLIl.png"">
-                 <div class="events-todo thin-text" id="task-stats">
-                            ACTIVE: <span id="active-tasks">0</span>COMPLETED: <span id="completed-today">0</span>
-                 </div>
-      </div>
+    <div class="time-large gradient-text" id="current-time">22:20</div>
+    <div class="stack" id="stack">
       <div id="cal-daily">
-      <div class="hdr">
-        <div id="calDailyExpand"></div>
-             <span id="current-date" id=""cal-daily-title">SUN.AUG.3</span>
-              <span class="temp">72.</span>
+        <div class="hdr">
+          <div id="calDailyExpand"></div>
+          <span id="current-date" class="cal-daily-title">SUN.AUG.3</span>
+          <div class="temp" id="weather-display">--°</div>
+        </div>
+        <div class="daily" id="cal-daily-list"></div>
       </div>
-      <div class="daily" id="cal-daily-list"></div>
     </div>
-      </div> </div>
-   </div></div>
+  </div>
 
 
   <div id="panelmenu">
@@ -3418,7 +3470,13 @@ bottom:0px}
       <div id="shortcut-menu">
         <i class="fas fa-pencil shortcut-icon" title="Notes" id="quick-notes-btn"></i>
         <i class="fas fa-stopwatch shortcut-icon" title="Timer" id="timer-btn"></i>
-        <i class="fas fa-lightbulb shortcut-icon" title="ThoughtStream" id="thoughtstream-btn"></i>
+        
+              <div id="thoughtstream-wrap">
+             <img class="checkin-button" id="stream-toggle-btn" src="https://i.imgur.com/PGpxLIl.png"">
+                 <div class="events-todo thin-text" id="task-stats">
+                            ACTIVE: <span id="active-tasks">0</span>COMPLETED: <span id="completed-today">0</span>
+                 </div>
+      </div>
                         <i class="archive-panel" id="arch-filters-btn" title="Visual filters">🎨</i>
 
 </div>
@@ -3618,29 +3676,43 @@ bottom:0px}
         <input id="af-sepia" type="range" min="0" max="100" value="0">
         <label>Invert</label>
         <div><input id="af-invert" type="checkbox"></div>
+        </div>
+            <div class="organizer-controls" style="background: black; gap:10px; display:grid; grid-template-columns: 1fr 500px; align-items:center">
+
         <label>Background Panel</label>
         <select id="af-background" class="org-recurring-toggle" style="padding:4px 8px">
-          <option value="assets/backgrounds/default-gradient.html">Default Gradient</option>
-          <option value="assets/backgrounds/Stars.html">Stars</option>
-          <option value="assets/backgrounds/Spheres.html">Shaped</option>
-          <option value="assets/backgrounds/rainbo.html">Rainbeau</option>
-          <option value="assets/backgrounds/butterflies.html">Butterflewn</option>
-                    <option value="assets/backgrounds/thing.html">Orballix</option>
-                    <option value="assets/backgrounds/24h.html">Reminding Clock</option>
-                    <option value="assets/backgrounds/vialinebg.html">Vile Vial</option>
-                    <option value="assets/backgrounds/lineTrance.html">Bipsychal</option>
-                    <option value="assets/backgrounds/rainpool.html">PrismPool</option>
-                            <option value="assets/backgrounds/darkwater.html">Toxiq Swim</option>
-                            <option value="assets/backgrounds/wavepool.html">Gravoidation</option>
-
-          
-
+<option value="assets/backgrounds/24h.html">24h</option>
+<option value="assets/backgrounds/Butterflies.html">Butterflies</option>
+<option value="assets/backgrounds/Darkstars.html">Darkstars</option>
+<option value="assets/backgrounds/GlassClock.html">GlassClock</option>
+<option value="assets/backgrounds/Insectiana.html">Insectiana</option>
+<option value="assets/backgrounds/RotoPulse.html">RotoPulse</option>
+<option value="assets/backgrounds/Spheres.html">Tronnic</option>
+<option value="assets/backgrounds/Stars.html">EveStars</option>
+<option value="assets/backgrounds/Wallpaper.html">Wallpaper</option>
+<option value="assets/backgrounds/Widget.html">Weatherly</option>
+<option value="assets/backgrounds/colorink.html">InkBlot</option>
+<option value="assets/backgrounds/darkwater.html">DarkWater</option>
+<option value="assets/backgrounds/default-gradient.html">SimpleNight</option>
+<option value="assets/backgrounds/linetrance.html">Entrancing</option>
+<option value="assets/backgrounds/liquid.html">Waternight</option>
+<option value="assets/backgrounds/neuralnetworkbackground.html">NeuralNetwork</option>
+<option value="assets/backgrounds/portals.html">PS1</option>
+<option value="assets/backgrounds/rainbo.html">Rainbeaux</option>
+<option value="assets/backgrounds/rainpool.html">Rainpool</option>
+<option value="assets/backgrounds/thing.html">Orballix</option>
+<option value="assets/backgrounds/transformer.html">Transformazionne</option>
+<option value="assets/backgrounds/vialinebg.html">Vialine</option>
+<option value="assets/backgrounds/wavepool.html">Gravoidator</option>
         </select>
-      </div>
-      <div class="organizer-footer" style="display:flex; gap:8px; justify-content:flex-end; padding:8px 12px">
+      <label>Background Edit</label>
+                        <button id="bg-edit" class="org-recurring-toggle">Edit</button>
+            </div>
+      <div class="organizer-footer" style="display:flex;background:black; gap:8px; justify-content:flex-end; padding:8px 12px">
         <button id="af-reset" class="org-recurring-toggle">Reset</button>
         <button id="af-done" class="org-recurring-toggle">Done</button>
       </div>
+      <div id=version>briizOS v1.0.5</div>
     </div>
   </div>
 
@@ -3703,6 +3775,184 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserLocalPersistence);
 
+// ── Sync Adapters (SyncContract.md §7) ──────────────────────────
+const SyncAdapters = (() => {
+  function requireFields(d, fields, name) {
+    const m = fields.filter(f => d[f] === undefined || d[f] === null);
+    if (m.length) throw new Error(`[${name}] missing: ${m.join(', ')}`);
+  }
+  function strId(d) { if (d.id != null) d.id = String(d.id); }
+  function stamp(d, isNew) {
+    d.updatedAt = serverTimestamp();
+    if (isNew) d.createdAt = d.createdAt || Date.now();
+  }
+
+  const taskAdapter = {
+    normalizeOnRead(id, data) {
+      return {
+        id: String(id),
+        type: data.type || 'task',
+        title: data.title || data.text || data.name || data.message || '',
+        status: (data.completed || data.completedAt) ? 'completed' : (data.status || 'pending'),
+        completed: !!(data.completed || data.completedAt),
+        completedAt: data.completedAt || null,
+        priority: data.priority || 'medium',
+        dueDate: data.dueDate || data.due_date || null,
+        position: data.position || null,
+        createdAt: data.createdAt || data.created || Date.now(),
+        updatedAt: data.updatedAt || Date.now(),
+      };
+    },
+    prepareForWrite(d, isNew = false) {
+      strId(d);
+      stamp(d, isNew);
+      if (!d.title && (d.text || d.name || d.message)) d.title = d.text || d.name || d.message;
+      delete d.text; delete d.name; delete d.message;
+      if (d.type === undefined) d.type = 'task';
+      if (d.status === undefined) d.status = 'pending';
+      if (d.completed === undefined) d.completed = false;
+      requireFields(d, ['id','type','title','status','createdAt'], 'taskAdapter');
+      return d;
+    },
+  };
+
+  const organizerAdapter = {
+    normalizeOnRead(id, data) {
+      return {
+        id: String(id),
+        type: data.type || 'note',
+        title: data.title || data.name || '',
+        body: data.body || data.description || data.content || '',
+        status: data.completedAt ? 'done' : (data.status === 'done' ? 'done' : (data.status || 'todo')),
+        completedAt: data.completedAt || null,
+        createdAt: data.createdAt || data.updatedAt || Date.now(),
+        updatedAt: data.updatedAt || Date.now(),
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        importance: data.importance || null,
+        deadline: data.deadline || null,
+        attachments: data.attachments || [],
+        links: data.links || [],
+      };
+    },
+    prepareForWrite(d, isNew = false) {
+      strId(d);
+      stamp(d, isNew);
+      if (!d.title && d.name) d.title = d.name;
+      if (!d.body && (d.description || d.content)) d.body = d.description || d.content;
+      delete d.name; delete d.text; delete d.description; delete d.content;
+      if (d.status === undefined) d.status = 'todo';
+      requireFields(d, ['id','type','title','status','createdAt'], 'organizerAdapter');
+      return d;
+    },
+  };
+
+  const calendarAdapter = {
+    normalizeOnRead(id, data) {
+      return {
+        id: String(id),
+        type: data.type || 'event',
+        title: data.title || data.text || data.name || '',
+        body: data.body || data.description || '',
+        scheduledDate: data.scheduledDate || (typeof data.date === 'string' ? data.date : null) || data.dateValue || null,
+        status: (data.completed || data.completedAt) ? 'done' : (data.status || 'todo'),
+        completed: !!(data.completed || data.completedAt),
+        completedAt: data.completedAt || null,
+        time: data.time || null,
+        start: data.start ?? data.startMinute ?? null,
+        end: data.end ?? null,
+        durationMinutes: data.durationMinutes ?? data.duration ?? null,
+        allDay: data.allDay || false,
+        color: data.color || '#3b82f6',
+        createdAt: data.createdAt || Date.now(),
+        updatedAt: data.updatedAt || Date.now(),
+      };
+    },
+    prepareForWrite(d, isNew = false) {
+      strId(d);
+      stamp(d, isNew);
+      if (!d.title && (d.text || d.name)) d.title = d.text || d.name;
+      if (!d.body && d.description) d.body = d.description;
+      if (!d.scheduledDate && d.date) {
+        if (d.date instanceof Date) {
+          const dt = d.date;
+          d.scheduledDate = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+        } else {
+          d.scheduledDate = d.date;
+        }
+      }
+      delete d.text; delete d.name; delete d.date; delete d.dateValue; delete d.description;
+      if (d.type === undefined) d.type = 'event';
+      if (d.status === undefined) d.status = 'todo';
+      requireFields(d, ['id','type','title','scheduledDate','status','createdAt'], 'calendarAdapter');
+      return d;
+    },
+  };
+
+  const noteAdapter = {
+    normalizeOnRead(id, data) {
+      // Resolve Web UI position: prefer nested ui.web.xywh, fallback to flat fields
+      const webUI = data.ui?.web?.xywh;
+      const x = webUI?.x ?? data.x ?? 0;
+      const y = webUI?.y ?? data.y ?? 0;
+      const w = webUI?.w ?? data.w ?? undefined;
+      const h = webUI?.h ?? data.h ?? undefined;
+      return {
+        id: String(id),
+        type: data.type || 'note',
+        title: data.title || '',
+        body: data.body || data.content || '',
+        customColor: data.customColor || null,
+        x, y, w, h,
+        active: data.active !== false,
+        isDocked: data.isDocked !== false,
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        createdAt: data.createdAt || Date.now(),
+        updatedAt: data.updatedAt || Date.now(),
+        // pass through extra panel fields
+        orgId: data.orgId || null,
+        chat: data.chat || null,
+        externalUrl: data.externalUrl || '',
+        externalShowUrl: !!data.externalShowUrl,
+        externalData: data.externalData || null,
+        subtype: data.subtype || null,
+        autoHeight: data.autoHeight !== false,
+        expansionCount: data.expansionCount || 0,
+        jobMessage: data.jobMessage || null,
+        taskId: data.taskId || null,
+      };
+    },
+    prepareForWrite(d, isNew = false) {
+      strId(d);
+      stamp(d, isNew);
+      // Canonical key: body not content
+      if (d.content !== undefined && d.body === undefined) d.body = d.content;
+      delete d.content;
+      // Move flat position fields into ui.web.xywh
+      const x = d.x, y = d.y, w = d.w, h = d.h;
+      if (x !== undefined || y !== undefined || w !== undefined || h !== undefined) {
+        if (!d.ui) d.ui = {};
+        if (!d.ui.web) d.ui.web = {};
+        d.ui.web.xywh = {
+          x: Number(x) || 0,
+          y: Number(y) || 0,
+          w: Number.isFinite(Number(w)) && Number(w) > 0 ? Number(w) : 300,
+          h: Number.isFinite(Number(h)) && Number(h) > 0 ? Number(h) : undefined,
+        };
+        // Clean undefined from xywh
+        if (d.ui.web.xywh.h === undefined) delete d.ui.web.xywh.h;
+      }
+      // Remove flat position fields — prohibited by contract §9
+      delete d.x; delete d.y; delete d.w; delete d.h;
+      if (d.body === undefined) d.body = '';
+      if (d.customColor === undefined) d.customColor = null;
+      requireFields(d, ['id','type','title','createdAt'], 'noteAdapter');
+      return d;
+    },
+  };
+
+  return { taskAdapter, organizerAdapter, calendarAdapter, noteAdapter };
+})();
+// ── End Sync Adapters ────────────────────────────────────────────
 
 const form = document.getElementById("auth-form");
       const email = document.getElementById("email");
@@ -3981,13 +4231,16 @@ form.style.display = authed ? "none" : "block";}
     }
 
     // Create a Firestore-safe copy of a panel (plain JSON, supported types only)
+    // Uses noteAdapter.prepareForWrite for contract compliance (ui.web.xywh, body)
     sanitizePanelForSave(panel) {
       const pid = String(panel?.id ?? '');
+      const now = Date.now();
+      const isNew = !panel?._existsInFirestore;
       const safe = {
         id: pid,
         type: panel?.type || 'note',
         title: panel?.title || '',
-        content: typeof panel?.content === 'string' ? panel.content : '',
+        body: typeof panel?.content === 'string' ? panel.content : (typeof panel?.body === 'string' ? panel.body : ''),
         tags: Array.isArray(panel?.tags) ? panel.tags.map(x => String(x)) : [],
         orgId: panel?.orgId || null,
         active: panel?.active !== false,
@@ -3999,10 +4252,12 @@ form.style.display = authed ? "none" : "block";}
         x: Number(panel?.x) || 0,
         y: Number(panel?.y) || 0,
         autoHeight: panel?.autoHeight !== false,
-        createdAt: Number(panel?.createdAt) || Date.now(),
-        updatedAt: Number(panel?.updatedAt) || Date.now(),
+        createdAt: Number(panel?.createdAt) || now,
         customColor: panel?.customColor || null,
         expansionCount: Number(panel?.expansionCount || 0),
+        // jobPanel fields
+        jobMessage: panel?.jobMessage || null,
+        taskId: panel?.taskId || null,
       };
       // Only include width/height if finite numbers
       const wNum = Number(panel?.w);
@@ -4016,7 +4271,9 @@ form.style.display = authed ? "none" : "block";}
           safe.externalData = panel.externalData;
         }
       } catch { safe.externalData = null; }
-      return safe;
+      // Apply noteAdapter — moves x,y,w,h into ui.web.xywh, renames content→body,
+      // attaches updatedAt as serverTimestamp, validates required fields
+      return SyncAdapters.noteAdapter.prepareForWrite(safe, isNew);
     }
 
     async savePanel(panel, options = {}) {
@@ -4074,27 +4331,36 @@ form.style.display = authed ? "none" : "block";}
     }
 
     saveTask(task) {
+      const now = Date.now();
       const idx = (this.state.tasks||[]).findIndex(t => t.id === task.id);
-      if (idx >= 0) this.state.tasks[idx] = { ...task, updatedAt: Date.now() };
-      else this.state.tasks.push({ ...task, createdAt: Date.now(), updatedAt: Date.now() });
+      const isNew = idx < 0;
+      if (idx >= 0) this.state.tasks[idx] = { ...task, updatedAt: now };
+      else this.state.tasks.push({ ...task, createdAt: now, updatedAt: now });
       this.saveLocal();
-      this.queueFirebaseSave('tasks', String(task.id), task);
+      const payload = SyncAdapters.taskAdapter.prepareForWrite({ ...task, createdAt: task.createdAt || now }, isNew);
+      this.queueFirebaseSave('tasks', String(task.id), payload);
     }
 
     saveEvent(event) {
+      const now = Date.now();
       const idx = (this.state.events||[]).findIndex(ev => ev.id === event.id);
-      if (idx >= 0) this.state.events[idx] = { ...event, updatedAt: Date.now() };
-      else this.state.events.push({ ...event, createdAt: Date.now(), updatedAt: Date.now() });
+      const isNew = idx < 0;
+      if (idx >= 0) this.state.events[idx] = { ...event, updatedAt: now };
+      else this.state.events.push({ ...event, createdAt: now, updatedAt: now });
       this.saveLocal();
-      this.queueFirebaseSave('events', String(event.id), event);
+      const payload = SyncAdapters.calendarAdapter.prepareForWrite({ ...event, createdAt: event.createdAt || now }, isNew);
+      this.queueFirebaseSave('events', String(event.id), payload);
     }
 
     saveOrganizerItem(item) {
+      const now = Date.now();
       const idx = (this.state.organizer||[]).findIndex(i => i.id === item.id);
-      if (idx >= 0) this.state.organizer[idx] = { ...item, updatedAt: Date.now() };
-      else this.state.organizer.push({ ...item, createdAt: Date.now(), updatedAt: Date.now() });
+      const isNew = idx < 0;
+      if (idx >= 0) this.state.organizer[idx] = { ...item, updatedAt: now };
+      else this.state.organizer.push({ ...item, createdAt: now, updatedAt: now });
       this.saveLocal();
-      this.queueFirebaseSave('organizer', String(item.id), item);
+      const payload = SyncAdapters.organizerAdapter.prepareForWrite({ ...item, createdAt: item.createdAt || now }, isNew);
+      this.queueFirebaseSave('organizer', String(item.id), payload);
     }
 
     deleteOrganizerItem(itemId) {
@@ -4165,11 +4431,42 @@ form.style.display = authed ? "none" : "block";}
       this.listeners.forEach(unsub => { try { unsub(); } catch {} });
       this.listeners.clear();
 
+      // Per-collection adapter normalization on read
+      const readNormalizers = {
+        panels: (id, data) => {
+          if (data.type === 'note') {
+            const n = SyncAdapters.noteAdapter.normalizeOnRead(id, data);
+            // Map canonical 'body' back to 'content' for internal UI use
+            return { ...data, ...n, content: n.body };
+          }
+          return { ...data, id: String(id) };
+        },
+        tasks: (id, data) => {
+          const t = SyncAdapters.taskAdapter.normalizeOnRead(id, data);
+          // Keep 'text' alias for UI compat
+          return { ...data, ...t, text: t.title };
+        },
+        events: (id, data) => {
+          const c = SyncAdapters.calendarAdapter.normalizeOnRead(id, data);
+          return { ...data, ...c, text: c.title };
+        },
+        organizer: (id, data) => {
+          const o = SyncAdapters.organizerAdapter.normalizeOnRead(id, data);
+          // Keep 'name' alias for UI compat
+          return { ...data, ...o, name: o.title };
+        },
+      };
+
       const bindCollection = (name, idField = 'id') => {
         const collRef = collection(this.db, `users/${uid}/${name}`);
+        const normalizer = readNormalizers[name];
         const unsub = onSnapshot(collRef, (snapshot) => {
           const items = [];
-          snapshot.forEach(d => items.push({ ...d.data(), [idField]: d.id }));
+          snapshot.forEach(d => {
+            const raw = d.data();
+            const item = normalizer ? normalizer(d.id, raw) : { ...raw, [idField]: d.id };
+            items.push(item);
+          });
           // update state in place (preserve object identity)
           this.mergeArrayByIdInPlace(name, items);
           this.saveLocal();
@@ -4312,6 +4609,12 @@ form.style.display = authed ? "none" : "block";}
         break;
       case 'minStack':
         if (window.panelManager) window.panelManager.minStack = Array.isArray(data) ? data.map(String) : [];
+        break;
+      case 'events':
+        // Refresh calendar UI on events snapshot
+        if (window.calendarManager) {
+          window.calendarManager.events = Array.isArray(data) ? data : [];
+        }
         break;
       case 'organizer':
         // Organizer UI refresh is driven by explicit actions; state is updated already.
@@ -4646,7 +4949,10 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         y: 180,
         createdAt: now,
         updatedAt: now,
-        autoHeight: true
+        autoHeight: true,
+        // jobPanel fields
+        jobMessage: options?.jobMessage || null,
+        taskId: options?.taskId || null
       };
 
       const panelElement = this.createPanelElement(panel);
@@ -4670,7 +4976,8 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         try { this.attachColorHoverHandlers(panelElement, panel); } catch {}
         this.applyWorldFilter();
         // Log to organizer unless created from organizer which will already have an entry
-          if (options?.source !== 'organizer') {
+        // jobPanels have their own organizer — skip the main one
+          if (panel.type !== 'jobPanel' && options?.source !== 'organizer') {
             try {
               OrganizerStore.load?.();
               const tag = panel.tags?.[0] || null;
@@ -4778,6 +5085,8 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
       // Style per panel type
       if (panel.type === 'custom-panel') {
         panelElement.classList.add('cw-panel');
+      } else if (panel.type === 'jobPanel') {
+        panelElement.classList.add('panel-job');
       } else if (panel.type === 'external') {
         // Naked look for externals on creation
         panelElement.classList.add('panel-external');
@@ -4982,6 +5291,48 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
             </iframe>
           `;
 
+        case 'jobPanel':
+          return `
+            <div class="job-panel-root" id="job-panel-${panel.id}" data-task-id="${panel.taskId || panel.id}">
+              <div class="job-header">
+                <div class="job-header-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H15A2,2 0 0,1 17,9V15A2,2 0 0,1 15,17H9A2,2 0 0,1 7,15V9A2,2 0 0,1 9,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M12,4A1,1 0 0,0 11,5A1,1 0 0,0 12,6A1,1 0 0,0 13,5A1,1 0 0,0 12,4M9,9V15H15V9H9M11,11H13V13H11V11Z"/></svg>
+                </div>
+                <h2 class="job-title">briizOS Tasks</h2>
+              </div>
+              <ul class="job-task-list" id="job-task-list-${panel.id}">
+                <li class="job-task-item active" data-task-id="${(panel.taskId || panel.id).replace('tasks-', '')}">
+                  <div class="job-status-light pink"></div>
+                  <div class="job-task-title">"${panel.jobMessage || ''}"</div>
+                  <div class="job-task-meta">
+                    <span class="job-badge running">RUNNING...</span>
+                  </div>
+                </li>
+              </ul>
+              <aside class="job-details" id="job-details-${panel.id}">
+                <div class="job-details-header">Task ID #<span class="job-id-display">${(panel.taskId || panel.id).replace('tasks-', '')}</span></div>
+                <div class="job-details-content">
+                  <div class="job-details-label">User:</div>
+                  <div class="job-details-value">${panel.jobMessage || ''}</div>
+                  <div class="job-details-label">Task.md:</div>
+                  <div class="job-details-value job-task-md-status" style="color: #ff2a6d; font-style: italic;">not found</div>
+                  <div class="job-details-label">Actions:</div>
+                  <div class="job-details-value job-actions-list" data-actions-panel="${panel.id}">
+                    <ol class="job-actions-ol"></ol>
+                    <div class="job-action-add">
+                      <input type="text" class="job-action-input" placeholder="+ Add action..." data-action-input="${panel.id}" />
+                    </div>
+                  </div>
+                  <div class="job-details-label">Status:</div>
+                  <div class="job-details-value job-status-text"><ol><li>Sent request to local machine</li></ol></div>
+                </div>
+                <div class="job-respond-container">
+                  <button class="job-respond-btn" data-job-respond="${panel.id}">respond</button>
+                </div>
+              </aside>
+            </div>
+          `;
+
         case 'custom-panel':
           if (panel.subtype === 'ai-chat' || !panel.subtype) {
             // Default to AI chat for now
@@ -5168,7 +5519,162 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         } else {
           setTimeout(initChat, 100);
         }
+      } else if (panel.type === 'jobPanel') {
+        this.initializeJobPanel(panelElement, panel);
       }
+    }
+
+    // ─── JOB PANEL: live actions editing ─────────────────────────────────
+    initializeJobPanel(panelElement, panel) {
+      const taskId = panel.taskId || panel.id;
+      const actionsContainer = panelElement.querySelector(`[data-actions-panel="${panel.id}"]`);
+      const actionInput = panelElement.querySelector(`[data-action-input="${panel.id}"]`);
+      const statusLight = panelElement.querySelector('.job-status-light');
+      const badgeEl = panelElement.querySelector('.job-badge');
+      if (!actionsContainer) return;
+
+      // Helper: get current task data from Firestore-synced state
+      const getTaskData = () => (window.briizPersistence?.state?.tasks || []).find(t => t.id === taskId);
+
+      // Helper: save updated actions array back to Firestore
+      const saveActions = (actions) => {
+        if (!window.briizPersistence) return;
+        window.briizPersistence.queueFirebaseSave('tasks', taskId, { actions });
+        // Also update in-memory state
+        const task = getTaskData();
+        if (task) task.actions = actions;
+      };
+
+      // Render the actions list from task data
+      const renderActions = () => {
+        const task = getTaskData();
+        const actions = (task && Array.isArray(task.actions)) ? task.actions : [];
+        const ol = actionsContainer.querySelector('.job-actions-ol');
+        if (!ol) return;
+
+        if (actions.length === 0) {
+          ol.innerHTML = '<li class="job-action-empty">Awaiting local agent</li>';
+        } else {
+          // Sort oldest first (by `created` timestamp)
+          const sorted = [...actions].sort((a, b) => (a.created || 0) - (b.created || 0));
+          ol.innerHTML = sorted.map((action, idx) => `
+            <li class="job-action-item ${action.completed ? 'completed' : ''}" data-action-id="${action.id}">
+              <button class="job-action-check" title="Toggle complete">${action.completed ? '&#10003;' : '&#9675;'}</button>
+              <span class="job-action-title" contenteditable="true" spellcheck="false">${this.escapeJobHtml(action.title || '')}</span>
+              <button class="job-action-delete" title="Remove">&times;</button>
+            </li>
+          `).join('');
+        }
+
+        // Update task-level status badge/light based on actions
+        if (task) {
+          const allDone = actions.length > 0 && actions.every(a => a.completed);
+          const taskStatus = task.status || 'running';
+          if (statusLight) {
+            statusLight.className = 'job-status-light ' + (allDone || taskStatus === 'complete' ? 'green' : 'pink');
+          }
+          if (badgeEl) {
+            if (allDone || taskStatus === 'complete') {
+              badgeEl.className = 'job-badge complete';
+              badgeEl.textContent = 'COMPLETE';
+            } else {
+              badgeEl.className = 'job-badge running';
+              badgeEl.textContent = 'RUNNING...';
+            }
+          }
+        }
+
+        // Wire up action event listeners
+        ol.querySelectorAll('.job-action-item').forEach(li => {
+          const actionId = li.dataset.actionId;
+
+          // Toggle complete
+          li.querySelector('.job-action-check')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const task = getTaskData();
+            if (!task || !Array.isArray(task.actions)) return;
+            const updated = task.actions.map(a => {
+              if (a.id === actionId) {
+                return { ...a, completed: !a.completed, completedAt: !a.completed ? Date.now() : null };
+              }
+              return a;
+            });
+            saveActions(updated);
+            renderActions();
+          });
+
+          // Inline edit title (on blur or Enter)
+          const titleSpan = li.querySelector('.job-action-title');
+          if (titleSpan) {
+            const commitEdit = () => {
+              const newTitle = titleSpan.textContent.trim();
+              if (!newTitle) return; // don't save empty
+              const task = getTaskData();
+              if (!task || !Array.isArray(task.actions)) return;
+              const updated = task.actions.map(a => {
+                if (a.id === actionId && a.title !== newTitle) {
+                  return { ...a, title: newTitle };
+                }
+                return a;
+              });
+              saveActions(updated);
+            };
+            titleSpan.addEventListener('blur', commitEdit);
+            titleSpan.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') { e.preventDefault(); titleSpan.blur(); }
+              if (e.key === 'Escape') { titleSpan.blur(); renderActions(); }
+            });
+          }
+
+          // Delete action
+          li.querySelector('.job-action-delete')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const task = getTaskData();
+            if (!task || !Array.isArray(task.actions)) return;
+            const updated = task.actions.filter(a => a.id !== actionId);
+            saveActions(updated);
+            renderActions();
+          });
+        });
+      };
+
+      // Add new action on Enter
+      if (actionInput) {
+        actionInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && actionInput.value.trim()) {
+            e.preventDefault();
+            const title = actionInput.value.trim();
+            actionInput.value = '';
+            const task = getTaskData();
+            const actions = (task && Array.isArray(task.actions)) ? [...task.actions] : [];
+            actions.push({
+              id: `tasks-${Date.now()}`,
+              title,
+              completed: false,
+              completedAt: null,
+              priority: 'medium',
+              created: Date.now(),
+            });
+            saveActions(actions);
+            renderActions();
+          }
+        });
+      }
+
+      // Initial render
+      renderActions();
+
+      // Re-render when Firestore data updates (poll every 2s since onSnapshot updates state in place)
+      const pollInterval = setInterval(() => {
+        if (!document.contains(panelElement)) { clearInterval(pollInterval); return; }
+        renderActions();
+      }, 2000);
+    }
+
+    escapeJobHtml(str) {
+      const el = document.createElement('span');
+      el.textContent = str;
+      return el.innerHTML;
     }
 
     updatePanelTitle(panelElement, title) {
@@ -6066,11 +6572,13 @@ renderPanels() {
     }
 
     setupTaskInput() {
-      document.getElementById('thoughtstream-btn').addEventListener('click', () => {
+      const tsBtn = document.getElementById('thoughtstream-btn');
+      if (tsBtn) tsBtn.addEventListener('click', () => {
         this.toggleThoughtStream();
       });
 
-      document.getElementById('stream-toggle-btn').addEventListener('click', () => {
+      const streamBtn = document.getElementById('stream-toggle-btn');
+      if (streamBtn) streamBtn.addEventListener('click', () => {
         this.toggleThoughtStream();
       });
     }
@@ -6079,9 +6587,10 @@ renderPanels() {
       const now = Date.now();
       const task = {
         id: `task-${now}`,
-        text: text,
+        type: 'task',
+        title: text,
+        status: 'pending',
         priority: this.determinePriority(text, dueDate),
-        created: now,
         createdAt: now,
         updatedAt: now,
         dueDate: dueDate,
@@ -6160,7 +6669,7 @@ renderPanels() {
       
       taskElement.className = `floating-task priority-${task.priority}`;
       taskElement.id = task.id;
-      taskElement.textContent = task.text;
+      taskElement.textContent = task.title || task.text;
       taskElement.style.left = `${task.position.x}px`;
       taskElement.style.top = `${task.position.y}px`;
       taskElement.style.pointerEvents = 'auto';
@@ -6198,6 +6707,7 @@ renderPanels() {
         this.tasks[taskIndex].completed = true;
         this.tasks[taskIndex].completedAt = now;
         this.tasks[taskIndex].updatedAt = now;
+        this.tasks[taskIndex].status = 'completed';
         
         const taskElement = document.getElementById(taskId);
         if (taskElement) {
@@ -6221,8 +6731,13 @@ renderPanels() {
     }
 
     clearCompletedTasks() {
+      const completed = this.tasks.filter(t => t.completed);
       const remaining = this.tasks.filter(t => !t.completed);
       this.tasks.splice(0, this.tasks.length, ...remaining);
+      // Hard delete completed tasks from Firestore (SyncContract §5)
+      for (const t of completed) {
+        try { persistence.queueFirebaseDelete('tasks', String(t.id)); } catch {}
+      }
       this.saveTasksToStorage();
       this.updateTaskCounts();
     }
@@ -6339,19 +6854,21 @@ renderPanels() {
       const eventText = prompt('Enter event description:');
       if (eventText) {
         const now = Date.now();
+        const dateObj = new Date(year, month, day);
+        const iso = yyyyMMdd(dateObj);
         const event = {
           id: `event-${now}`,
-          date: new Date(year, month, day),
-          text: eventText,
-          created: now,
+          type: 'event',
+          title: eventText,
+          scheduledDate: iso,
+          status: 'todo',
           createdAt: now,
           updatedAt: now
         };
-        
+
         this.events.push(event);
         this.saveEventsToStorage();
-        
-        const iso = yyyyMMdd(event.date);
+
         try {
           OrganizerStore.create({ name: eventText, type: 'event', scheduledDate: iso, due: iso, dateMode: 'event', dateValue: iso, source: { mode: 'calendar' } });
         } catch (err) {
@@ -6359,7 +6876,7 @@ renderPanels() {
         }
 
         // Add task to task manager as well
-        taskManager.createTask(`${eventText} (${event.date.toLocaleDateString()})`, 'medium', event.date.toISOString().split('T')[0]);
+        taskManager.createTask(`${eventText} (${dateObj.toLocaleDateString()})`, 'medium', iso);
       }
     }
 
@@ -6495,7 +7012,6 @@ renderPanels() {
       const container = document.getElementById('bg-panel-container');
       if (container) container.style.filter = this.filterCss();
       mainbg.style.background = 'none';
-
       // Reset calendar position first
       const calendar = document.getElementById('cal-daily');
       if (calendar) {
@@ -6505,15 +7021,22 @@ renderPanels() {
         calendar.style.right = '';
         calendar.style.transform = '';
         calendar.style.top = '';
-
+          const mainTime = document.getElementById('current-time');
+          mainTime.style.visibility = 'visible';
         // Apply custom position for 24h background option
         if (frame.src.endsWith('assets/backgrounds/24h.html')) {
+          const mainTime = document.getElementById('current-time');
+          mainTime.style.visibility = 'hidden';
           calendar.style.position = 'absolute';
           calendar.style.transformOrigin = 'top';
           calendar.style.right = '50vw';
           calendar.style.transform = 'translateX(50%)';
           calendar.style.top = '30vh';
         }
+                if (frame.src.endsWith('assets/backgrounds/GlassClock.html')) {
+          const mainTime = document.getElementById('current-time');
+          mainTime.style.visibility = 'hidden';
+                }
         // You can add more background-specific customizations here
         // For example:
         // if (frame.src.endsWith('assets/backgrounds/purdots.png')) {
@@ -7261,6 +7784,49 @@ updateTime() {
   document.getElementById('current-date').textContent = dateString;
 };
   }
+  // Weather Display System (Open-Meteo, no API key)
+  class WeatherManager {
+    constructor() {
+      this.el = document.getElementById('weather-display');
+      this.fetchWeather();
+      setInterval(() => this.fetchWeather(), 600000); // refresh every 10 min
+    }
+    wmoGlyph(code, isDay = true) {
+      if (code === 0) return isDay ? '☀' : '🌙';
+      if (code <= 3) return isDay ? '⛅' : '☾';
+      if (code <= 48) return '☁';
+      if (code <= 57) return '🌧';
+      if (code <= 67) return '🌧';
+      if (code <= 77) return '❄';
+      if (code <= 82) return '🌧';
+      if (code <= 86) return '❄';
+      if (code <= 99) return '⛈';
+      return '☁';
+    }
+    async fetchWeather() {
+      try {
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 })
+        );
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const resp = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day&temperature_unit=fahrenheit`
+        );
+        const data = await resp.json();
+        const temp = Math.round(data.current.temperature_2m);
+        const fallbackIsDay = (() => {
+          const h = new Date().getHours();
+          return h >= 6 && h < 18;
+        })();
+        const isDay = Number(data?.current?.is_day) === 1 ? true : (Number(data?.current?.is_day) === 0 ? false : fallbackIsDay);
+        const glyph = this.wmoGlyph(data.current.weather_code, isDay);
+        if (this.el) this.el.textContent = `${glyph} ${temp}°`;
+      } catch (e) {
+        if (this.el) this.el.textContent = '--°';
+      }
+    }
+  }
+
   // === Organizer Store (single source of truth for ✦) ===
   const OrganizerStore = {
     get items() {
@@ -7391,7 +7957,7 @@ updateTime() {
 
       const item = {
         id: 'itm_' + now + '_' + Math.random().toString(36).slice(2,7),
-        type, name: name || '(untitled)', body: '',
+        type, title: name || '(untitled)', name: name || '(untitled)', body: '',
         createdAt: now, updatedAt: now,
         scheduledDate, start: timeStart, end: endTime, due, duration: duration, completedAt: null,
         status: 'todo', priority: 'auto',
@@ -7683,14 +8249,17 @@ closeOrgBtn.addEventListener('click', closeOrganizer);
 
   function applyOrganizerLayout(mode){
     if (!orgFooterEl) return;
+    const filterContainer = document.getElementById('orgFilterContainer');
     if (mode === 'footer') {
       orgFooterEl.classList.add('footer-mode');
       orgFooterEl.setAttribute('data-layout','footer');
-      if (orgMiniToggleBtn) orgMiniToggleBtn.title = 'Switch to sidebar layout';
+      if (orgMiniToggleBtn) orgMiniToggleBtn.title = 'Switch to Sidebar';
+      if (filterContainer) filterContainer.style.textAlign = 'center';
     } else {
       orgFooterEl.classList.remove('footer-mode');
       orgFooterEl.setAttribute('data-layout','sidebar');
-      if (orgMiniToggleBtn) orgMiniToggleBtn.title = 'Switch to bottom footer layout';
+      if (orgMiniToggleBtn) orgMiniToggleBtn.title = 'Switch to Footer';
+      if (filterContainer) filterContainer.style.textAlign = 'right';
     }
   }
 
@@ -8000,7 +8569,8 @@ document.addEventListener('keydown', (e) => {
     if (!wrap || !panel) return;
     panel.style.transition = 'transform .8s ease, width 1s ease, border 1s ease';
     const t = panel.style.transform || '';
-    const tilt = 'translateX(0vh) rotateY(-30deg) rotate(10deg) scale(.65)';
+    const tilt = 'translateX(0vh) rotateX(69deg)';
+    const clone = document.getElementById('cal-daily-clone');
     if (t.includes('rotateY')) {
       panel.style.transform = '';
       panel.style.width = '';
@@ -8008,17 +8578,20 @@ document.addEventListener('keydown', (e) => {
       panel.style.border = '';
       panel.style.transformOrigin = '';
       wrap.classList.remove('lay');
+      clone.style.height = '';
     } else {
       panel.style.transformOrigin = 'bottom';
       panel.style.transform = tilt;
-      panel.style.width = '1000px';
+      panel.style.transformOrigin = 'top';
+      panel.style.width = 'min(600px, 50vw)';
       panel.style.opacity = '.7';
       panel.style.border= '1px solid rgba(0,255,255,0.88)';
       wrap.classList.add('lay');
       if (typeof wrap._nudgeCalendar === 'function') {
-        const shift = window.innerHeight * 0.6;
+        const shift = window.innerHeight * 0.3;
         wrap._nudgeCalendar(shift, 0);
       }
+      clone.style.height = '25vh';
     }
   }
 
@@ -8262,7 +8835,7 @@ document.addEventListener('keydown', (e) => {
     const rangeStart = new Date(cv.y, cv.m, 1);
     const rangeEnd = new Date(cv.y, cv.m + 1, 0);
     const rangeDates = enumerateDates(rangeStart, rangeEnd);
-    OrganizerStore.items.forEach(it=>{
+    (state.events || []).forEach(it=>{
       if (it.type !== 'event') return;
       rangeDates.forEach(d => {
         if (eventOccursOnDate(it, d)) {
@@ -8313,6 +8886,7 @@ document.addEventListener('keydown', (e) => {
     ].filter(Boolean);
 
     const titles = [
+      document.getElementById('current-date'),
       document.getElementById('cal-daily-title'),
       calDailyClone ? calDailyClone.querySelector('#cal-daily-title') : null
     ].filter(Boolean);
@@ -8336,7 +8910,7 @@ document.addEventListener('keydown', (e) => {
     lists.forEach(list => {
       if (isToday) {
         // Show today's events
-        const todayItems = OrganizerStore.items.filter(it=> it.type === 'event' && eventOccursOnDate(it, dateStr));
+        const todayItems = (state.events || []).filter(it=> it.type === 'event' && eventOccursOnDate(it, dateStr));
 
         if (todayItems.length === 0) {
           const d = document.createElement('div');
@@ -8364,7 +8938,7 @@ document.addEventListener('keydown', (e) => {
         for (let i = 1; i <= 7; i++) {
           const futureDate = addDaysLocal(today, i);
           const futureDateStr = yyyyMMdd(futureDate);
-          const futureItems = OrganizerStore.items.filter(it=> it.type === 'event' && eventOccursOnDate(it, futureDateStr));
+          const futureItems = (state.events || []).filter(it=> it.type === 'event' && eventOccursOnDate(it, futureDateStr));
 
           futureItems.forEach(it => {
             hasFutureEvents = true;
@@ -8382,7 +8956,7 @@ document.addEventListener('keydown', (e) => {
         }
       } else {
         // Not today - show just this date's events (original behavior)
-        const items = OrganizerStore.items.filter(it=> it.type === 'event' && eventOccursOnDate(it, dateStr));
+        const items = (state.events || []).filter(it=> it.type === 'event' && eventOccursOnDate(it, dateStr));
         if (!items.length) {
           const d = document.createElement('div');
           d.className = 'org-feed-empty';
@@ -9222,6 +9796,7 @@ window._initManagers = () => {
   archiveManager = window.archiveManager || new ArchiveManager();
   authManager = window.authManager || new AuthManager();
   timeManager = new TimeManager();
+  weatherManager = new WeatherManager();
 
   window.panelManager = panelManager;
   window.taskManager = taskManager;
@@ -9648,8 +10223,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Wire UI
       el.start.addEventListener('click', start);
       el.pause.addEventListener('click', pauseToggle);
-      el.plus.addEventListener('click', ()=>addTime(15_000));
-      el.minus.addEventListener('click', ()=>addTime(-15_000));
+      el.plus.addEventListener('click', ()=>addTime(60_000));
+      el.minus.addEventListener('click', ()=>addTime(-60_000));
       el.cPause.addEventListener('click', pauseToggle);
       el.cStop.addEventListener('click', stopReset);
       el.cExpand.addEventListener('click', toBig);

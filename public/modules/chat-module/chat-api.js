@@ -64,31 +64,23 @@ class ChatAPI {
 
   // Inject system prompt with tool definitions
   injectSystemPrompt(messages, customPrompt = null) {
-    // Use custom prompt from settings if provided
-    if (customPrompt && customPrompt.trim()) {
-      const customMsg = { role: 'system', content: customPrompt };
-      const hasSystem = messages.some(m => m.role === 'system');
-      if (!hasSystem) {
-        return [customMsg, ...messages];
-      }
-      return messages;
-    }
-
-    // Otherwise use default tool-enabled prompt
-    if (!this.enableTools || !window.systemPrompt) {
-      return messages;
-    }
-
-    const systemMsg = window.systemPrompt.getSystemMessage();
-
-    // Check if there's already a system message
     const hasSystem = messages.some(m => m.role === 'system');
+    if (hasSystem) return messages;
 
-    if (!hasSystem) {
-      return [systemMsg, ...messages];
+    // Always start with the base tool-enabled prompt
+    let systemContent = '';
+    if (this.enableTools && window.systemPrompt) {
+      systemContent = window.systemPrompt.getSystemPrompt();
     }
 
-    return messages;
+    // Append custom prompt (doesn't replace — tools stay available)
+    if (customPrompt && customPrompt.trim()) {
+      systemContent += `\n\n# User Custom Instructions\n\n${customPrompt.trim()}`;
+    }
+
+    if (!systemContent) return messages;
+
+    return [{ role: 'system', content: systemContent }, ...messages];
   }
 
   // Parse text for JSON tool calls
@@ -103,7 +95,7 @@ class ChatAPI {
     // Valid tool names to prevent false positives
     const validTools = [
       // Original tools
-      'getScheduleSummary', 'searchNotes', 'findScheduleConflicts',
+      'getScheduleSummary', 'searchNotes', 'findScheduleConflicts', 'lookupOnline',
       'openPanel', 'startTimer', 'tilePanels',
       'createPrioritizedTaskList',
       'createSingleCalendarEvent', 'updateCalendarEvent', 'createRecurringCalendarEvent',

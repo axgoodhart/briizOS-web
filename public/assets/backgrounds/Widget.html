@@ -1,0 +1,387 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <title>Minimalist Widget Page</title>
+
+    <link rel="canonical" href="https://codepen.io/marhdev/pen/dXdVqM">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans:400,800|Poppins'>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.9/css/weather-icons.min.css'>
+  
+<style>
+body {
+  font-family: "Poppins", "Open Sans", Arial, sans-serif;
+  font-size: 18px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.container {
+  background-color: #000;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  height: 100vh;
+  align-items: center;
+  line-height: 1;
+  color: #fff;
+  position: relative;
+  z-index: -2;
+}
+.container:after {
+  content: "";
+  background: rgba(100, 100, 100, 0.4);
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: -1;
+}
+.container #images {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+.container #images .image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+.container #images .image.active {
+  opacity: 1;
+}
+.container #weather {
+  text-transform: capitalize;
+  font-family: "Open Sans", Arial, sans-serif;
+  letter-spacing: 2px;
+}
+.container #bgProgress {
+  height: 5px;
+  width: 0;
+  background: rgba(0, 0, 0, 0.4);
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: width 0.13s linear;
+}
+.container #clock {
+  font-size: 120px;
+}
+@media screen and (max-height: 360px) {
+  .container #clock {
+    font-size: 64px;
+  }
+}
+@media screen and (max-width: 580px) {
+  .container #clock {
+    font-size: 85px;
+  }
+}
+@media screen and (max-width: 360px) {
+  .container #clock {
+    font-size: 64px;
+    letter-spacing: -4px;
+  }
+}
+.container #clock span {
+  display: inline-block;
+  font-family: "Open Sans", Arial, sans-serif;
+  position: relative;
+  top: -0.5rem;
+  line-height: 0.5em;
+}
+.container #date {
+  padding: 0 10px;
+  text-align: center;
+  position: absolute;
+  top: 20px;
+  width: 100%;
+}
+@media screen and (max-height: 320px) {
+  .container #date {
+    position: static;
+  }
+}
+@media screen and (max-width: 370px) {
+  .container #date {
+    font-size: 16px;
+  }
+}
+</style>
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <div class="container">
+  <div id="bgProgress"></div>
+  <div id="images">
+    <div class="image active" style="background-image: url('https://storage.googleapis.com/chydlx/codepen/minimalist-widget-page/dan-rogers-1156523.jpg')"></div>
+    <div class="image" style="background-image: url('https://storage.googleapis.com/chydlx/codepen/minimalist-widget-page/jaanus-jagomagi-1245736.jpg')"></div>
+    <div class="image" style="background-image: url('https://storage.googleapis.com/chydlx/codepen/minimalist-widget-page/patrick-tomasso-1272187.jpg')"></div>
+    <div class="image" style="background-image: url('https://storage.googleapis.com/chydlx/codepen/minimalist-widget-page/sven-scheuermeier-37377.jpg')"></div>
+    <div class="image" style="background-image: url('https://storage.googleapis.com/chydlx/codepen/minimalist-widget-page/tim-easley-1131834.jpg')"></div>
+    <div class="image" style="background-image: url('https://storage.googleapis.com/chydlx/codepen/minimalist-widget-page/weroad-1102821.jpg')"></div>
+  </div>
+  <div id="date">
+    <p>Monday, July 17, 2016</p>
+  </div>
+  <div id="clock">
+    <p>
+       3<span>:</span>00PM</p>
+  </div>
+  <div id="weather">
+    <p>
+       72&#8457; <i class="wi wi-day-sunny"> </i> Sunny</p>
+  </div>
+</div>
+  
+    <script id="rendered-js" >
+var dateObj = function () {
+
+  function month(num) {
+    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return months[num];
+  }
+
+  function day(num) {
+    var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    return days[num];
+  }
+
+  function _getDate() {
+    var today = new Date(),
+    date = {};
+
+    date = {
+      date: today.getDate(),
+      day: day(today.getDay()),
+      month: month(today.getMonth()),
+      year: today.getFullYear() };
+
+
+    return date;
+  }
+
+  return _getDate;
+
+}();
+
+var timeObj = function () {
+  function _getTime() {
+    var now = new Date(),
+    rawHours = now.getHours(),
+    minutes = now.getMinutes(),
+    seconds = now.getSeconds();
+
+    return {
+      hour: rawHours === 0 ? 12 : rawHours > 12 ? rawHours - 12 : rawHours,
+      mins: minutes < 10 ? "0" + minutes : minutes,
+      period: rawHours >= 12 ? "PM" : "AM",
+      secs: seconds < 10 ? "0" + seconds : seconds };
+  }
+
+  return _getTime;
+}();
+
+var setDateTime = function () {
+  var elm_clock = document.querySelector('#clock p'),
+  elm_date = document.querySelector('#date p');
+
+  var defaults = {
+    dateMsg: "%dateDay, %dateMonth %dateDate, %dateYear",
+    timeMsg: "%timeHour<span>:</span>%timeMinutes %timePeriod" };
+
+
+  function _setTime() {
+    var currentTime = timeObj();
+    var msg = defaults.timeMsg.
+    replace('%timeHour', currentTime.hour).
+    replace('%timeMinutes', currentTime.mins).
+    replace('%timePeriod', currentTime.period);
+    elm_clock.innerHTML = msg;
+  }
+
+  function _setDate() {
+    var currentDate = dateObj();
+    var msg = defaults.dateMsg.
+    replace('%dateDay', currentDate.day).
+    replace('%dateMonth', currentDate.month).
+    replace('%dateDate', currentDate.date).
+    replace('%dateYear', currentDate.year);
+
+    elm_date.innerHTML = msg;
+  }
+
+  _setTime();
+  _setDate();
+
+  setInterval(function () {
+    _setDate();
+    _setTime();
+  }, 1000);
+}();
+
+var cycleBG = function () {
+  var progressBar = document.querySelector('#bgProgress'),
+  duration = 15000,
+  bgImages = document.querySelectorAll('#images .image'),
+  i = 0,
+  x = 0;
+
+  console.log(bgImages);
+
+  function changeBg() {
+    // if i >= bgImages.length -1
+    i >= bgImages.length - 1 ? i = 0 : i++;
+    //change bg image
+    bgImages.forEach(function (img, index) {
+      img.classList.remove('active');
+      if (index === i) {img.classList.add('active');}
+    });
+  }
+
+  changeBg();
+
+  setInterval(function () {
+    // if x === 100
+    x === 100 ? (x = 0, changeBg()) : x++;
+    //progressBar width = x
+    progressBar.style.width = x + '%';
+  }, duration / 100);
+}();
+
+var weatherWidget = function () {
+  var cont = document.querySelector('#weather');
+  var isImperial = (navigator.language || "").toLowerCase() === "en-us";
+
+  function weatherMeta(code, isDay) {
+    var dayNightPrefix = isDay ? "day" : "night";
+
+    if (code === 0) {return { label: "Clear", icon: "wi-" + dayNightPrefix + "-sunny" };}
+    if (code === 1 || code === 2) {return { label: "Partly cloudy", icon: "wi-" + dayNightPrefix + "-cloudy" };}
+    if (code === 3) {return { label: "Cloudy", icon: "wi-cloudy" };}
+    if (code === 45 || code === 48) {return { label: "Fog", icon: "wi-fog" };}
+    if (code === 51 || code === 53 || code === 55) {return { label: "Drizzle", icon: "wi-sprinkle" };}
+    if (code === 56 || code === 57) {return { label: "Freezing drizzle", icon: "wi-sleet" };}
+    if (code === 61 || code === 63 || code === 65) {return { label: "Rain", icon: "wi-rain" };}
+    if (code === 66 || code === 67) {return { label: "Freezing rain", icon: "wi-rain-mix" };}
+    if (code === 71 || code === 73 || code === 75 || code === 77) {return { label: "Snow", icon: "wi-snow" };}
+    if (code === 80 || code === 81 || code === 82) {return { label: "Rain showers", icon: "wi-showers" };}
+    if (code === 85 || code === 86) {return { label: "Snow showers", icon: "wi-snow-wind" };}
+    if (code === 95 || code === 96 || code === 99) {return { label: "Thunderstorm", icon: "wi-thunderstorm" };}
+    return { label: "Unknown", icon: "wi-na" };
+  }
+
+  function renderWeather(temp, code, isDay) {
+    var meta = weatherMeta(code, isDay);
+    var unitSymbol = isImperial ? "&#8457;" : "&#8451;";
+    var html = "<p>";
+    html += Math.round(temp) + unitSymbol;
+    html += " <i class='wi wi-fw " + meta.icon + "'></i> ";
+    html += meta.label;
+    html += "</p>";
+    cont.innerHTML = html;
+  }
+
+  function renderError(message) {
+    cont.innerHTML = "<p>" + message + "</p>";
+  }
+
+  function getCoordsFromBrowser() {
+    return new Promise(function (resolve, reject) {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation unsupported"));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+      function (position) {
+        resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude });
+
+      },
+      function () {
+        reject(new Error("Geolocation blocked"));
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000 });
+
+    });
+  }
+
+  function getCoordsFromIP() {
+    return fetch("https://ipapi.co/json/").
+    then(function (res) {return res.json();}).
+    then(function (data) {
+      if (!data || typeof data.latitude !== "number" || typeof data.longitude !== "number") {
+        throw new Error("IP lookup unavailable");
+      }
+      return {
+        lat: data.latitude,
+        lon: data.longitude };
+
+    });
+  }
+
+  function fetchWeather(lat, lon) {
+    var units = isImperial ? "fahrenheit" : "celsius";
+    var weatherURL = "https://api.open-meteo.com/v1/forecast?latitude=" + encodeURIComponent(lat) + "&longitude=" + encodeURIComponent(lon) + "&current=temperature_2m,weather_code,is_day&temperature_unit=" + units + "&timezone=auto";
+    return fetch(weatherURL).
+    then(function (res) {
+      if (!res.ok) {throw new Error("Weather request failed");}
+      return res.json();
+    }).
+    then(function (data) {
+      if (!data || !data.current) {throw new Error("Missing weather data");}
+      renderWeather(data.current.temperature_2m, data.current.weather_code, data.current.is_day === 1);
+    });
+  }
+
+  function updateWeather() {
+    getCoordsFromBrowser().
+    catch(function () {return getCoordsFromIP();}).
+    then(function (coords) {return fetchWeather(coords.lat, coords.lon);}).
+    catch(function () {renderError("Weather unavailable");});
+  }
+
+  updateWeather();
+  setInterval(updateWeather, 600000);
+
+}();
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

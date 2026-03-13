@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORCHESTRA | STRATIGRAPHY</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&family=IBM+Plex+Mono:wght@300;500&family=Playfair+Display:ital@0;1&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #cccac6;
+            --paper-shadow: #969287;
+            --paper-highlight: #ffffff;
+            --ink: #1a1a1a;
+            --accent: #e5ff00;
+            --brass: #b58921;
+            --strings: #8e443d;
+            --woodwinds: #5b7c5d;
+            --percussion: #4a4a4a;
+            --transition: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--parchment);
+            color: var(--ink);
+            font-family: 'Hecate Display', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Paper Grain Texture */
+        .grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.4;
+            mix-blend-mode: multiply;
+        }
+
+        /* Main Canvas - The Stratigraphy Layout */
+        .orchestra-container {
+            position: relative;
+            width: 95vw;
+            height: 90vh;
+            background: var(--parchment);
+            box-shadow:
+                20px 20px 60px var(--paper-shadow),
+                -20px -20px 60px var(--paper-highlight);
+            border-radius: 2px;
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            padding: 40px;
+            gap: 40px;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        /* Embossed Heading */
+        .header-section {
+            grid-column: 1 / 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            letter-spacing: -2px;
+            line-height: 0.9;
+
+            color: var(--ink);
+            text-shadow: 1px 1px 0px var(--paper-highlight), -1px -1px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 span span {
+            font-family: Voltdeco V02, sans-serif;
+            color: violet;
+            ;
+            padding: 10px;
+            border-radius: 2px 2px 15px 15px;
+            -webkit-text-stroke: 2px rgb(0, 0, 0);
+            text-shadow: 6px 0px 5px rgb(0, 16, 16);
+        }
+
+        .section-nav {
+            margin-top: 40px;
+            list-style: none;
+        }
+
+        .nav-item {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.6;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            opacity: 1;
+            padding-left: 20px;
+            color: var(--accent);
+        }
+
+        .nav-item::before {
+            content: '';
+            width: 0;
+            height: 1px;
+            background: var(--accent);
+            margin-right: 0;
+            transition: var(--transition);
+        }
+
+        .nav-item.active::before {
+            width: 30px;
+            margin-right: 15px;
+        }
+
+        /* The Stage Map - Center Stratum */
+        .stage-visualizer {
+            position: relative;
+            background: var(--parchment);
+            box-shadow:
+                inset 10px 10px 20px var(--paper-shadow),
+                inset -10px -10px 20px var(--paper-highlight);
+            border-radius: 500px 500px 10px 10px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 40px;
+            overflow: hidden;
+        }
+
+        .stage-svg {
+            width: 90%;
+            height: 90%;
+            filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.1));
+        }
+
+        .instrument-group {
+            fill: transparent;
+            stroke: rgba(0, 0, 0, 0.1);
+            stroke-width: 1;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .instrument-group:hover,
+        .instrument-group.active {
+            filter:drop-shadow(2px 4px 6px black);
+            fill: rgba(0, 0, 0, 0.02);
+            stroke: deeppink;;
+            stroke-width: 14;
+        }
+.instrument-group:hover {
+    stroke-width:3;
+    filter:none;
+}
+        /* MIDI Visualization Nodes */
+        .midi-dot {
+            fill: var(--accent);
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .midi-dot.active {
+            opacity: 1;
+            filter: blur(2px);
+        }
+
+        /* Info Sidebar */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .data-card {
+            background: var(--parchment);
+            padding: 25px;
+            box-shadow:
+                5px 5px 15px var(--paper-shadow),
+                -5px -5px 15px var(--paper-highlight);
+            border-radius: 4px;
+        }
+
+        .label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Sheet Music Modal - Deep Layer */
+        #sheet-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(244, 241, 234, 0.95);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            width: 80%;
+            height: 85%;
+            background: var(--parchment);
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.1);
+            padding: 60px;
+            position: relative;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .sheet-header {
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .sheet-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-style: italic;
+        }
+
+        .staff-line {
+            height: 1px;
+            background: rgba(116, 20, 20, 0.2);
+            margin: 12px 0;
+            width: 100%;
+        }
+
+        .staff-group {
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            font-family: 'IBM Plex Mono', monospace;
+            cursor: pointer;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 10px;
+            border: 1px solid var(--ink);
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            background: var(--parchment);
+            border: none;
+            padding: 15px 30px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 4px 4px 10px var(--paper-shadow), -4px -4px 10px var(--paper-highlight);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:active {
+            box-shadow: inset 2px 2px 5px var(--paper-shadow), inset -2px -2px 5px var(--paper-highlight);
+        }
+    </style>
+</head>
+
+<body>
+
+    <svg class="grain">
+        <filter id='noiseFilter'>
+            <feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch' />
+        </filter>
+        <rect width='100%' height='100%' filter='url(#noiseFilter)' />
+    </svg>
+
+    <main class="orchestra-container">
+        <!-- Sidebar Navigation -->
+        <section class="header-section">
+            <div>
+                <p style="font-family: 'IBM Plex Mono'; font-size: 0.7rem; letter-spacing: 4px; margin-bottom: 10px;">
+                    virtual.Zcore</p>
+                <h1>D I V I D E D<br></h1>
+                <h1 style="text-decoration:22px dotted underline; text-decoration-color: purple">SYMPHONY</h1><br>
+                <h1 style="color: var(--accent); font-size: 2.8rem">
+                    <br>
+                    <space>mvt. 3
+                </h1>
+
+                <ul class="section-nav">
+                    <li class="nav-item active" onclick="focusSection('strings')">01. Strings</li>
+                    <li class="nav-item" onclick="focusSection('woodwinds')">02. Woodwinds</li>
+                    <li class="nav-item" onclick="focusSection('brass')">03. Brass</li>
+                    <li class="nav-item" onclick="focusSection('percussion')">04. Percussion</li>
+                </ul>
+            </div>
+
+            <div class="controls">
+                <button onclick="toggleModal()">View Score</button>
+            </div>
+        </section>
+
+        <!-- The Interactive Stage -->
+        <section class="stage-visualizer">
+            <svg viewBox="0 0 800 500" class="stage-svg">
+                <!-- Arcs for visual hierarchy -->
+                <path d="M 50,450 A 350,350 0 0,1 750,450" fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="40" />
+                <path d="M 150,450 A 250,250 0 0,1 650,450" fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="40" />
+
+                <!-- Percussion Section (Back) -->
+                <path id="percussion-zone" class="instrument-group"
+                    d="M 100,450 A 300,300 0 0,1 700,450 L 650,450 A 250,250 0 0,0 150,450 Z" />
+
+                <!-- Brass Section -->
+                <path id="brass-zone" class="instrument-group"
+                    d="M 160,440 A 240,240 0 0,1 640,440 L 600,440 A 200,200 0 0,0 200,440 Z" />
+
+                <!-- Woodwinds -->
+                <path id="woodwinds-zone" class="instrument-group"
+                    d="M 210,430 A 190,190 0 0,1 590,430 L 550,430 A 150,150 0 0,0 250,430 Z" />
+
+                <!-- Strings (Front) -->
+                <path id="strings-zone" class="instrument-group active"
+                    d="M 260,420 A 140,140 0 0,1 540,420 L 400,420 Z" />
+
+                <!-- MIDI Pulse Nodes (Dynamic) -->
+                <g id="midi-nodes"></g>
+            </svg>
+        </section>
+
+        <!-- Stats Sidebar -->
+        <section class="info-panel">
+            <div class="data-card">
+                <span class="label">ACTIVE SECTION</span>
+                <div class="value" id="active-name">STRINGS</div>
+            </div>
+            <div class="data-card">
+                <span class="label">MIDI INTENSITY</span>
+                <div class="value" id="midi-val">42%</div>
+            </div>
+            <div class="data-card" style="flex-grow: 1;">
+                <span class="label">SECTION METRICS</span>
+                <div style="margin-top: 20px;">
+                    <div style="height: 4px; background: rgba(0,0,0,0.05); margin-bottom: 20px; position: relative;">
+                        <div id="meter-1"
+                            style="position: absolute; height: 100%; width: 60%; background: var(--accent); transition: 0.3s;">
+                        </div>
+                    </div>
+                    <div style="height: 4px; background: rgba(0,0,0,0.05); margin-bottom: 20px; position: relative;">
+                        <div id="meter-2"
+                            style="position: absolute; height: 100%; width: 30%; background: var(--ink); transition: 0.3s;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Score Layer -->
+    <div id="sheet-modal">
+        <div class="modal-content">
+            <div class="close-modal" onclick="toggleModal()">Close [esc]</div>
+            <div class="sheet-header">
+                <div>
+                    <p style="font-family: 'IBM Plex Mono'; font-size: 0.7rem;">OPUS. NO 128</p>
+                    <h2 class="sheet-title">Stratigraphy of the Heavens</h2>
+                </div>
+                <div style="text-align: right; font-family: 'IBM Plex Mono'; font-size: 0.8rem;">
+                    CONDUCTOR SCORE<br>REV. 2024
+                </div>
+            </div>
+
+            <div class="staff-group">
+                <span class="label">FLUTE I.</span>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+            </div>
+            <div class="staff-group">
+                <span class="label">OBOE II.</span>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+            </div>
+            <div class="staff-group">
+                <span class="label">VIOLIN I.</span>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+                <div class="staff-line"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate MIDI nodes inside the SVG
+        const nodesContainer = document.getElementById('midi-nodes');
+        const sectionMap = {
+            strings: { color: 'var(--strings)', id: 'strings-zone' },
+            woodwinds: { color: 'var(--woodwinds)', id: 'woodwinds-zone' },
+            brass: { color: 'var(--brass)', id: 'brass-zone' },
+            percussion: { color: 'var(--percussion)', id: 'percussion-zone' }
+        };
+
+        for (let i = 0; i < 60; i++) {
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", 200 + Math.random() * 400);
+            circle.setAttribute("cy", 200 + Math.random() * 200);
+            circle.setAttribute("r", 1.5 + Math.random() * 3);
+            circle.setAttribute("class", "midi-dot");
+            nodesContainer.appendChild(circle);
+        }
+
+        const dots = document.querySelectorAll('.midi-dot');
+
+        // Simulate MIDI Activity
+        setInterval(() => {
+            const randomDot = dots[Math.floor(Math.random() * dots.length)];
+            randomDot.classList.add('active');
+            setTimeout(() => randomDot.classList.remove('active'), 200);
+
+            // Randomize meters
+            document.getElementById('midi-val').innerText = Math.floor(Math.random() * 100) + '%';
+            document.getElementById('meter-1').style.width = Math.random() * 100 + '%';
+            document.getElementById('meter-2').style.width = Math.random() * 100 + '%';
+        }, 150);
+
+        function focusSection(section) {
+            // Update Nav
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update Map
+            document.querySelectorAll('.instrument-group').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${section}-zone`).classList.add('active');
+
+            // Update UI
+            document.getElementById('active-name').innerText = section.toUpperCase();
+        }
+
+        function toggleModal() {
+            const modal = document.getElementById('sheet-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        // Close on escape
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') document.getElementById('sheet-modal').style.display = 'none';
+        });
+
+        // Initialize entry animation
+        document.querySelector('.orchestra-container').style.opacity = 0;
+        document.querySelector('.orchestra-container').style.transform = 'translateY(20px)';
+
+        window.onload = () => {
+            setTimeout(() => {
+                document.querySelector('.orchestra-container').style.transition = 'all 1s ease-out';
+                document.querySelector('.orchestra-container').style.opacity = 1;
+                document.querySelector('.orchestra-container').style.transform = 'translateY(0)';
+            }, 100);
+        };
+    </script>
+</body>
+
+</html>

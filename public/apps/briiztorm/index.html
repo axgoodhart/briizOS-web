@@ -416,7 +416,7 @@ filter:brightness(.8)contrast(1.1)saturate(.6);
   title="Inline Frame Example"
   width="100%"
   height="100%"
-  src="http://localhost:3001">
+  src="/briiztorm2.html">
 </iframe>
 </div>
     <!-- Left rail -->
@@ -598,6 +598,54 @@ filter:brightness(.8)contrast(1.1)saturate(.6);
 
 </body>
 </html>
+<!-- Inline minimal Gemini API -->
+<script>
+// Minimal Gemini streaming for Briiztorm
+const GEMINI_API_KEY = 'AIzaSyBy8D-ZuZLUaJADsN2dTJTjKAaQhPtx3N8';
+
+async function* streamGemini(messages, model = 'gemini-pro') {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+
+  const contents = messages.map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : (msg.role === 'system' ? 'user' : msg.role),
+    parts: [{ text: msg.content }],
+  }));
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents,
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.95,
+        maxOutputTokens: 1024,
+      }
+    }),
+  });
+
+  if (!res.body) throw new Error('No response body');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value);
+    const lines = chunk.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) yield text;
+        } catch (_) {}
+      }
+    }
+  }
+}
+</script>
 <script>
 
 
@@ -891,59 +939,9 @@ saveBtn.addEventListener('click', () => {
 });
 
 // -------------------- Chat --------------------
-const fakeAI = {
-  async respond(message, context) {
-    const lower = message.trim().toLowerCase();
-    // Slash commands
-    if (lower.startsWith('/help')) {
-      return { text: [
-        'Available commands:',
-        '• /summarize — summarize current preview or files',
-        '• /todo — make a TODO from context',
-        '• /search <term> — search files',
-        '• /open <path> — open a file by path',
-      ].join('\n') };
-    }
-    if (lower.startsWith('/open ')) {
-      const path = message.slice(6).trim();
-      const exists = !!getNode(data[currentTab], path.replace(/^\//, ''));
-      if (exists) openFile(path.startsWith('/')? path: '/'+path);
-      return { text: exists ? `Opened ${path}` : `Could not find ${path}` };
-    }
-    if (lower.startsWith('/search ')) {
-      const q = message.slice(8).trim().toLowerCase();
-      const files = listAllFiles(data[currentTab]).filter(f => f.path.toLowerCase().includes(q));
-      return { text: files.length ? 'Found:\n' + files.map(f => '• ' + f.path).join('\n') : 'No results.' };
-    }
-    if (lower.startsWith('/summarize')) {
-      const focus = openedPath || '(nothing open)';
-      const node = openedPath ? getNode(data[currentTab], openedPath.substring(1)) : null;
-      let summary = `Summary of ${focus}:\n`;
-      if (node?.content) {
-        const lines = node.content.split('\n').slice(0, 12);
-        summary += lines.join('\n') + (node.content.split('\n').length > lines.length ? '\n…' : '');
-      } else summary += 'no textual content';
-      return { text: summary, tools: [{ name: 'file.peek', args: { path: openedPath } }] };
-    }
-    if (lower.startsWith('/todo')) {
-      const project = data[currentTab].children?.[0]?.name || 'project';
-      return { text: `TODO for ${project}:\n1) Wire real fs APIs\n2) Add auth for cloud\n3) Improve message formatting\n4) Write tests` };
-    }
-
-    // Default: chatty assistant with canned smarts
-    const tips = [
-      'Tip: you can drag files into the explorer to mock-import.',
-      'Try /search index to locate index.html.',
-      'Open README.md and use /summarize.',
-      'Use the Edit/Save buttons in the preview panel for text files.',
-    ];
-    const fileHint = openedPath ? `I see you have ${openedPath} open.` : 'You have no file open yet.';
-    return {
-      text: `Okay! ${fileHint} ${tips[Math.floor(Math.random()*tips.length)]}`,
-      tools: openedPath ? [{ name: 'context', args: { openedPath } }] : undefined
-    };
-  }
-};
+// Gemini API is now inlined above
+console.log('✨ Using inlined Gemini API');
+console.log('API Key:', GEMINI_API_KEY ? 'Configured' : 'Missing');
 
 function addMessage(role, text, opts = {}) {
   const msg = document.createElement('div');
@@ -996,7 +994,7 @@ expandBtn.addEventListener('click', () => {
   inputEl.rows = rows >= 6 ? 1 : rows + 2;
 });
 
-function onSend() {
+async function onSend() {
   const text = inputEl.value.trim();
   if (!text) return;
   addMessage('you', text);
@@ -1004,9 +1002,75 @@ function onSend() {
   inputEl.rows = 1;
 
   setLoading(true);
-  fakeAI.respond(text, { openedPath }).then(async res => {
-    await streamAssistantText(res.text, res.tools);
-  }).finally(() => setLoading(false));
+
+  try {
+    // Prepare messages with system prompt for Zolar control
+    const systemPrompt = `You control a 3D solar system file explorer. Commands you can use:
+- "Navigate to [planet]" - Focus camera on a planet
+- "Speed up/slow down" - Control animation speed
+- "Create project [name]" - Add new celestial body
+- "Focus on the sun" - Center view
+Be creative and use space metaphors when describing file operations.`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: text }
+    ];
+
+    const msg = document.createElement('div');
+    msg.className = 'msg assistant';
+    msg.innerHTML = `<div class="meta">Assistant</div><div class="content"></div>`;
+    messagesEl.appendChild(msg);
+    const contentEl = msg.querySelector('.content');
+
+    // Stream the response using inlined Gemini function
+    console.log('Sending to Gemini:', text);
+    const stream = streamGemini(messages);
+
+    let fullResponse = '';
+    for await (const chunk of stream) {
+      fullResponse += chunk;
+      contentEl.textContent += chunk;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Parse response for Zolar commands
+    parseAndSendToZolar(fullResponse);
+  } catch (error) {
+    console.error('Chat error:', error);
+    await streamAssistantText(`Error: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// Parse AI response and send commands to Zolar
+function parseAndSendToZolar(text) {
+  const zolarIframe = document.querySelector('#zolar-panel iframe');
+  if (!zolarIframe) return;
+
+  // Simple command detection
+  if (text.toLowerCase().includes('navigate to')) {
+    const match = text.match(/navigate to (\w+)/i);
+    if (match) {
+      zolarIframe.contentWindow.postMessage({
+        type: 'NAVIGATE_TO_PLANET',
+        payload: { planet: match[1] }
+      }, '*');
+    }
+  }
+
+  if (text.toLowerCase().includes('speed up')) {
+    zolarIframe.contentWindow.postMessage({ type: 'INCREASE_SPEED' }, '*');
+  }
+
+  if (text.toLowerCase().includes('slow down')) {
+    zolarIframe.contentWindow.postMessage({ type: 'DECREASE_SPEED' }, '*');
+  }
+
+  if (text.toLowerCase().includes('focus') && text.toLowerCase().includes('sun')) {
+    zolarIframe.contentWindow.postMessage({ type: 'FOLLOW_SUN' }, '*');
+  }
 }
 
 function setLoading(is) {

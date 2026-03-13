@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        html{filter:invert(1)}
+
+
+        :root {
+            --parchment: #ffffff;
+            --ink-deep: #1a1b26;
+            --ink-wash: rgba(26, 27, 38, 0.85);
+            --accent-bleed: #3d4a5d;
+            --grain-opacity: 0.015;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--parchment);
+            color: var(--ink-deep);
+            font-family:Afacad Flux, 'Instrument Sans', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* The Paper Texture */
+        .stage {
+            position: relative;
+            width: 95vw;
+            height: 90vh;
+            background-color: var(--parchment);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            padding: 3rem;
+            box-shadow: 
+                inset 0 0 100px rgba(0,0,0,0.02),
+                0 30px 60px -12px rgba(0,0,0,0.1);
+        }
+
+        .stage::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            filter: url(#paper-grain);
+            opacity: var(--grain-opacity);
+            z-index: 10;
+        }
+
+        /* Typography */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 5;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 1rem;
+        }
+
+        .composition-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            text-transform: lowercase;
+            font-style: italic;
+        }
+
+        .meta-data {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            gap: 2rem;
+            opacity: 0.6;
+        }
+
+        /* Visualizer Surface */
+        .visualizer-container {
+            position: absolute;
+            left:0;
+            bottom:0;
+            width: 100%;
+            height: 100%;
+            filter: url(#ink-bleed);
+            mix-blend-mode: multiply;
+        }
+
+        .note-blot {
+            position: absolute;
+            background: var(--ink-deep);
+            border-radius: 50%;
+            transform-origin: center;
+            opacity: 0;
+            box-shadow:0 10px 20px white, inset 0 0 60px black, 0 0 20px white, inset 0 0 80px white;
+            filter: blur(14px);
+            pointer-events: none;
+        }
+
+        /* Controls */
+        footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 2rem;
+            z-index: 5;
+        }
+
+        .transport-controls {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--ink-deep);
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            opacity: 0.5;
+        }
+
+        .btn-play::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 8px solid var(--ink-deep);
+        }
+
+        .timeline-track {
+            position: relative;
+            flex-grow: 1;
+            height: 1px;
+            background: rgba(0,0,0,0.1);
+            margin: 0 4rem;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 35%;
+            background: var(--ink-deep);
+        }
+
+        .tempo-readout {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Animations */
+        @keyframes bleedIn {
+            0% { transform: scale(0.2) translateY(20px); opacity: 0; filter: blur(50px); }
+            20% { opacity: 0.5; filter: blur(18px); }
+            100% { transform: scale(1.5) translateY(-100px); opacity: 0; filter: blur(30px); }
+        }
+
+        svg {
+            position: absolute;
+            width: 0;
+            height: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <svg>
+        <filter id="paper-grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="3" stitchTiles="stitch" />
+            <feDiffuseLighting lighting-color="white" surfaceScale="2">
+                <feDistantLight azimuth="45" elevation="45" />
+            </feDiffuseLighting>
+        </filter>
+        <filter id="ink-bleed">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+    </svg>
+
+    <section class="stage">
+
+        <main class="visualizer-container" id="canvas">
+            <!-- Ink blots generated by JS -->
+        </main>
+
+    </section>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const progress = document.getElementById('progress');
+        let width = canvas.offsetWidth;
+        let height = canvas.offsetHeight;
+
+        function createInkBlot() {
+            const blot = document.createElement('div');
+            blot.className = 'note-blot';
+            
+            // Randomize position based on "musical scale" (y-axis)
+            const x = Math.random() * width*.5;
+            const y = Math.random() * height*.85;
+            
+            // Randomize size of the "note"
+            const size = 1 + Math.random() * 250;
+            
+            blot.style.left = `${x}px`;
+            blot.style.top = `${y}px`;
+            blot.style.width = `${size}px`;
+            blot.style.height = `${size}px`;
+            
+            // Assign animation
+            const duration =1 + Math.random() * 20;
+            blot.style.animation = `bleedIn ${duration}s cubic-bezier(0.05, 0, 0.5, 0) forwards`;
+            blot.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            canvas.appendChild(blot);
+            
+            // Cleanup
+            setTimeout(() => {
+                blot.remove();
+            }, duration * 1000);
+        }
+
+        // Simulate MIDI Input
+        let lastTime = 0;
+        let progressVal = 35;
+
+        function loop(timestamp) {
+            if (timestamp - lastTime > 1000 + Math.random() * 2200) {
+                createInkBlot();
+                lastTime = timestamp;
+            }
+
+           
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+        });
+
+    </script>
+</body>
+</html>

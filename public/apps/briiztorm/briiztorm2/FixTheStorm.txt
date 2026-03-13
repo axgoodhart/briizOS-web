@@ -1,0 +1,245 @@
+CELESTIA//OS — Comprehensive Implementation Plan
+
+⸻
+
+PHASE 0 — Foundational Stabilization
+
+The system must first stop breaking, leaking, and confusing the user before any enhancements can land.
+
+0.1 Error Boundaries & Fallbacks
+	•	Wrap Three.js initialization in try/catch.
+	•	Display modal when CDN fails; retry logic + offline fallback.
+	•	Add global error logger for UI and rendering.
+
+0.2 Memory & Cleanup
+	•	Project deletion triggers:
+	•	removal from scene
+	•	disposal of geometries, materials, textures
+	•	removal from internal arrays
+	•	Replace per-project label canvas with reusable cached textures.
+
+0.3 Core Refactors
+	•	Extract project creation, HUD logic, grid logic into modules.
+	•	Centralize state in a single state manager (projects, UI, camera, settings).
+	•	Rewrite raycast handler so parent detection is predictable.
+
+⸻
+
+PHASE 1 — Persistence & Data Model Overhaul
+
+1.1 Persistent Storage
+	•	Implement autosave to localStorage.
+	•	Schema:
+
+{
+  "projects": [...],
+  "settings": { "cameraSpeed": ..., "theme": ... }
+}
+
+
+	•	Load on startup; migrate old data with versioning.
+
+1.2 Comprehensive Editable Project Model
+
+Extend each project with:
+	•	description/notes
+	•	creation date & true last-updated timestamp
+	•	editable stats
+	•	customizable color (full color picker)
+	•	tags & categories
+	•	status (Active / Archived / Complete)
+
+1.3 CRUD UI
+	•	Edit modal with:
+	•	Rename
+	•	Edit stats
+	•	Edit category
+	•	Edit tags
+	•	Edit notes
+	•	Change color
+	•	Delete confirmation (“This chrysalis will shatter forever”).
+
+⸻
+
+PHASE 2 — Navigation & Movement Rebuild
+
+2.1 Camera Controls Rewrite
+
+Goals:
+	•	Intuitive
+	•	Reversible
+	•	No parallax nausea
+
+Tasks:
+	•	Replace mouse-based camera rotation with:
+	•	pointer-lock optional mode
+	•	orbit-style rotation for inspecting nearby projects
+	•	Keyboard navigation:
+	•	W/S forward–back
+	•	A/D strafe
+	•	Arrow keys rotate
+	•	Shift for boost
+	•	R/F vertical rise/fall
+
+2.2 Thruster System Rework
+	•	Toggle transitions with easing.
+	•	Separate “drift” velocity from “input” velocity.
+	•	Ensure grid leapfrog respects new movement system.
+
+2.3 Mobile Navigation
+	•	Touch joystick (left)
+	•	Touch camera drag (right)
+	•	Tap project to open HUD
+	•	Swipe for movement
+
+⸻
+
+PHASE 3 — UI Rebuild & Responsiveness
+
+3.1 HUD Redesign
+	•	Responsive layout (mobile portrait + landscape).
+	•	Adaptive width & scrollable stats.
+	•	Dynamic placement: HUD repositions to avoid screen overflow.
+
+3.2 Modals
+	•	Enter = submit
+	•	Escape = cancel
+	•	Input validation:
+	•	Required project name
+	•	Color validation
+	•	Stat ranges
+
+3.3 Notifications
+	•	Non-blocking toasts:
+	•	“Project Materialized”
+	•	“Project Updated”
+	•	“Project Deleted”
+	•	“Saved”
+
+3.4 Search and Filter Panel
+	•	Search by name
+	•	Filter by category, tags, status
+	•	Sort by last updated, shards, creation date
+
+3.5 Theming
+	•	Vaporwave theme (current)
+	•	Onyx/Monochrome theme
+	•	Warm dusk theme
+	•	User-saved custom palettes
+
+⸻
+
+PHASE 4 — Project Management Tools
+
+4.1 Metadata & Structure
+	•	Tags (multi-select)
+	•	Status (enum)
+	•	Priority/urgency slider
+	•	Due dates & reminders
+	•	Completion percentage (auto or manual)
+	•	Folders or spatial groupings
+
+4.2 Organizational UI
+	•	Folder sidebar
+	•	Timeline panel
+	•	Gantt-style view (horizontal scroll)
+	•	Dashboard summary:
+	•	Project counts
+	•	Completion stats
+	•	Recently updated list
+
+4.3 Templates
+	•	Composition template
+	•	Writing template
+	•	Programming template
+	•	Custom user templates
+
+⸻
+
+PHASE 5 — Graphics & Performance Renovation
+
+5.1 Rendering Optimization
+	•	Frustum culling for distant chrysalises
+	•	LOD versions:
+	•	Full mesh close up
+	•	Simplified mesh at distance
+	•	Sprite proxy at extreme distance
+	•	Starfield instancing
+
+5.2 Infinite Grid Fix
+	•	Recalculate grid position based on camera modulo grid-size.
+	•	Two-grid leapfrog kept—but rewritten with deterministic mathematics.
+
+5.3 Label Rendering
+	•	Use single offscreen canvas for all text → generate textures & cache.
+	•	Depth-checked sprite material to avoid clipping.
+	•	Billboard orientation updated in render loop.
+
+5.4 Visual Polish
+	•	New shaders for crystal cores (refraction, bloom)
+	•	Real reflective floor using cube camera
+	•	Adjustable fog density
+
+5.5 Animation Improvements
+	•	Smooth shard orbits
+	•	Hover motion per project with seeded noise
+	•	Crystal pulsing when selected
+
+⸻
+
+PHASE 6 — Advanced Features & Next Horizons
+
+6.1 Import / Export
+	•	JSON export of all projects
+	•	JSON import with schema validation
+	•	CSV export for stats + metadata
+
+6.2 Collaboration
+	•	Multi-user real-time collab (WebSockets or Firebase)
+	•	Shared projects & sync
+	•	Comment threads inside HUD
+	•	Activity history & version timeline
+
+6.3 Authentication
+	•	OAuth login
+	•	Cloud sync of all project data
+
+6.4 Project Images / Thumbnails
+	•	Upload images
+	•	Generate thumbnails
+	•	Show preview in HUD + labels
+
+6.5 Extended Spatial Features
+	•	Constellation linking between related projects
+	•	Spatial clustering
+	•	Custom background themes (nebulae, void plains, holo-temples)
+
+⸻
+
+PHASE 7 — Polishing, QA, Stability
+
+7.1 Stress Tests
+	•	1,000 projects
+	•	Rapid creation/deletion
+	•	Reload cycles
+	•	Mobile usability
+
+7.2 UX Refinements
+	•	Smooth transitions
+	•	HUD animations
+	•	Project “snap-to” camera movement
+	•	Tutorial mode
+
+7.3 Documentation
+	•	Developer guide
+	•	API reference
+	•	Extension points
+
+⸻
+
+PHASE 8 — Final Deployment
+	•	PWA support for offline use
+	•	Asset optimization
+	•	CDN fallback bundling
+	•	Versioned builds
+

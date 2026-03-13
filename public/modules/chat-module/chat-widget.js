@@ -10,6 +10,7 @@ class ChatWidget {
     this.progress = 0;
     this.top='auto !!important';
     this.isAnimatingEntry = false;
+    this.hasInteracted = false;
 
     // Element references
     this.scrollEl = null;
@@ -83,6 +84,9 @@ class ChatWidget {
     };
     window.addEventListener('briizos-settings-closed', this.settingsCloseHandler);
 
+    // Load message history
+    this.loadMessages();
+
     this.render();
     this.attachEventListeners();
     this.scrollToBottom();
@@ -96,6 +100,60 @@ class ChatWidget {
     }
   }
 
+  // Save messages to localStorage with metadata
+  saveMessages() {
+    try {
+      const historyKey = `briizos.chatHistory.${this.panelId}`;
+      const data = {
+        messages: this.messages,
+        timestamp: Date.now(),
+        flagged: false,
+        preview: this.messages.length > 0 ? this.messages[0].content.substring(0, 100) : ''
+      };
+      localStorage.setItem(historyKey, JSON.stringify(data));
+    } catch (error) {
+      console.error('Failed to save chat history:', error);
+    }
+  }
+
+  // Load messages from localStorage
+  loadMessages() {
+    try {
+      const historyKey = `briizos.chatHistory.${this.panelId}`;
+      const saved = localStorage.getItem(historyKey);
+      if (saved) {
+        const data = JSON.parse(saved);
+
+        // Auto-cleanup: delete if older than 7 days and not flagged
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        if (data.timestamp < sevenDaysAgo && !data.flagged) {
+          localStorage.removeItem(historyKey);
+          return;
+        }
+
+        this.messages = data.messages || [];
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+      this.messages = [];
+    }
+  }
+
+  // Flag conversation to prevent auto-cleanup
+  flagConversation(flagged = true) {
+    try {
+      const historyKey = `briizos.chatHistory.${this.panelId}`;
+      const saved = localStorage.getItem(historyKey);
+      if (saved) {
+        const data = JSON.parse(saved);
+        data.flagged = flagged;
+        localStorage.setItem(historyKey, JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error('Failed to flag conversation:', error);
+    }
+  }
+
   render() {
 
     const pairs = this.getPairs();
@@ -104,16 +162,26 @@ class ChatWidget {
 
       <div class="cw-root" id = "aichat">
 
-      <!-- Collapse button (outside scroll element so it stays visible) -->
-        ${pairs.length > 0 ? `
+      <!-- Remote task organizer (sibling of conversation area, same position as cw-scroll) -->
+      <div class="cw-remote-organizer cw-scroll" data-remoteorg="${this.panelId}" style="display: none;">
+        <div class="cw-remote-org-header">
+          <svg viewBox="0 0 24 24" fill="currentColor" class="cw-remote-org-icon"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H15A2,2 0 0,1 17,9V15A2,2 0 0,1 15,17H9A2,2 0 0,1 7,15V9A2,2 0 0,1 9,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M12,4A1,1 0 0,0 11,5A1,1 0 0,0 12,6A1,1 0 0,0 13,5A1,1 0 0,0 12,4M9,9V15H15V9H9M11,11H13V13H11V11Z"/></svg>
+          <span>Remote Tasks</span>
+        </div>
+        <ul class="cw-remote-org-list" data-remoteorglist="${this.panelId}"></ul>
+      </div>
+
+      <!-- Conversation area wrapper (contains collapse button, scroll panel, and nav) -->
+      <div class="cw-conversation-area ${pairs.length === 0 ? 'no-messages' : ''} ${!this.hasInteracted ? 'hidden-until-interaction' : ''}" data-conversation-area="${this.panelId}">
+
+        <!-- Collapse button -->
         <button class="cw-collapse-btn" data-collapse="${this.panelId}" title="Collapse chat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="18 15 12 9 6 15"></polyline>
           </svg>
         </button>
-        ` : ''}
 
-      <!-- Scrollable conversation area (only show if messages exist) -->
+        <!-- Scrollable conversation area -->
         ${pairs.length > 0 ? `
         <div class="cw-scroll" data-scroll="${this.panelId}">
           <div class="cw-list">
@@ -121,7 +189,7 @@ class ChatWidget {
               <div class="cw-pair" data-pair="${idx}">
                 <!-- User message (sticky header) -->
                 <div class="cw-header">
-                  <div class="cw-user-bubble bb-bubble-user">
+                  <div class="cw-user-bubble bb-bubble-user message-clickable" data-message-index="${idx * 2}" data-message-role="user">
                     <div class="cw-user-label">You</div>
                     <div class="cw-user-text">${this.escapeHtml(pair.user.content)}</div>
                   </div>
@@ -129,7 +197,7 @@ class ChatWidget {
 
                 <!-- Assistant response (body) -->
                 <div class="cw-body">
-                  <div class="cw-assistant-bubble bb-bubble-assistant">
+                  <div class="cw-assistant-bubble bb-bubble-assistant message-clickable" data-message-index="${idx * 2 + 1}" data-message-role="assistant">
                     <div class="cw-assistant-label">AI</div>
                     <div class="cw-assistant-text">
                       ${pair.assistant ?
@@ -156,17 +224,41 @@ class ChatWidget {
             <button class="cw-nav-btn" data-action="down">↓</button>
           </div>
         ` : ''}
+      </div>
 
-        <!-- Bottom input -->
-        <div class="cw-input">
+        <!-- Bottom input (normal mode) -->
+        <div class="cw-input" data-inputbar="${this.panelId}">
           <textarea
             class="cw-textarea"
             placeholder="Ask anything..."
             data-input="${this.panelId}"
           >${this.input}</textarea>
+          <button class="cw-remoteai-btn" data-remoteai="${this.panelId}" title="Remote AI">
+            <img src="./assets/img/chatmoduleicon.png" alt="Remote AI" class="cw-remoteai-icon" />
+          </button>
           <button class="cw-send" data-send="${this.panelId}" ${this.isLoading ? 'disabled' : ''}>
             ${this.isLoading ? '...' : '          <i class="fas fa-paper-plane"></i>'}
           </button>
+        </div>
+
+        <!-- Bottom input (remote AI mode) -->
+        <div class="cw-remote-bar" data-remotebar="${this.panelId}" style="display: none;">
+          <div class="cw-remote-status">
+            <svg class="cw-remote-wifi" viewBox="0 0 24 24" fill="currentColor"><path d="M12,21L15.6,16.2C14.6,15.45 13.35,15 12,15C10.65,15 9.4,15.45 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"/></svg>
+            <div class="cw-remote-status-text">
+              <div>Status: Inactive</div>
+              <div class="cw-remote-signal">Last Signal: --</div>
+            </div>
+          </div>
+          <div class="cw-remote-input-section">
+            <input type="text" class="cw-remote-input" data-remoteinput="${this.panelId}" placeholder="Ask your computer" />
+          </div>
+          <div class="cw-remote-actions">
+            <svg class="cw-remote-send-icon" viewBox="0 0 24 24" fill="currentColor" data-remotesend="${this.panelId}"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/></svg>
+            <button class="cw-remoteai-btn cw-remote-back-btn" data-remoteback="${this.panelId}" title="Back to chat">
+              <img src="./assets/img/chatmoduleicon.png" alt="Remote AI" class="cw-remoteai-icon" />
+            </button>
+          </div>
         </div>
 
         <!-- Settings Panel Container -->
@@ -175,6 +267,7 @@ class ChatWidget {
     `;
 
     // Update element references
+    this.conversationArea = this.container.querySelector(`[data-conversation-area="${this.panelId}"]`);
     this.scrollEl = this.container.querySelector(`[data-scroll="${this.panelId}"]`);
     this.pairEls = Array.from(this.container.querySelectorAll('[data-pair]'));
     this.inputEl = this.container.querySelector(`[data-input="${this.panelId}"]`);
@@ -191,6 +284,11 @@ class ChatWidget {
       this.inputEl.addEventListener('input', (e) => {
         this.input = e.target.value;
         this.adjustTextareaHeight();
+        // Show conversation area on first input
+        if (!this.hasInteracted && this.conversationArea) {
+          this.hasInteracted = true;
+          this.conversationArea.classList.remove('hidden-until-interaction');
+        }
       });
 
       this.inputEl.addEventListener('keydown', (e) => {
@@ -200,9 +298,14 @@ class ChatWidget {
         }
       });
 
-      // Expand on focus if collapsed
+      // Show conversation area on focus
       this.inputEl.addEventListener('focus', () => {
-        if (this.scrollEl && this.scrollEl.classList.contains('collapsed')) {
+        if (!this.hasInteracted && this.conversationArea) {
+          this.hasInteracted = true;
+          this.conversationArea.classList.remove('hidden-until-interaction');
+        }
+        // Expand on focus if collapsed
+        if (this.conversationArea && this.conversationArea.classList.contains('collapsed')) {
           this.expandChat();
         }
       });
@@ -258,6 +361,35 @@ class ChatWidget {
       });
     }
 
+    // Remote AI button - toggle to remote mode
+    const remoteAiBtn = this.container.querySelector(`[data-remoteai="${this.panelId}"]`);
+    if (remoteAiBtn) {
+      remoteAiBtn.addEventListener('click', () => this.enterRemoteMode());
+    }
+
+    // Remote back button - toggle back to normal mode
+    const remoteBackBtn = this.container.querySelector(`[data-remoteback="${this.panelId}"]`);
+    if (remoteBackBtn) {
+      remoteBackBtn.addEventListener('click', () => this.exitRemoteMode());
+    }
+
+    // Remote send button
+    const remoteSendBtn = this.container.querySelector(`[data-remotesend="${this.panelId}"]`);
+    if (remoteSendBtn) {
+      remoteSendBtn.addEventListener('click', () => this.handleRemoteSend());
+    }
+
+    // Remote input enter key
+    const remoteInput = this.container.querySelector(`[data-remoteinput="${this.panelId}"]`);
+    if (remoteInput) {
+      remoteInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleRemoteSend();
+        }
+      });
+    }
+
     // Scroll tracking
     if (this.scrollEl) {
       this.scrollEl.addEventListener('scroll', () => this.handleScroll());
@@ -268,6 +400,19 @@ class ChatWidget {
     const downBtn = this.container.querySelector('[data-action="down"]');
     if (upBtn) upBtn.addEventListener('click', () => this.navigatePair(-1));
     if (downBtn) downBtn.addEventListener('click', () => this.navigatePair(1));
+
+    // Message click handlers for copy/edit
+    const messageBubbles = this.container.querySelectorAll('.message-clickable');
+    messageBubbles.forEach(bubble => {
+      bubble.addEventListener('click', (e) => {
+        // Don't show tooltip if clicking on links or buttons within the message
+        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+
+        const messageIndex = parseInt(bubble.dataset.messageIndex);
+        const messageRole = bubble.dataset.messageRole;
+        this.showMessageTooltip(bubble, messageIndex, messageRole);
+      });
+    });
   }
 
   toggleSettings() {
@@ -314,12 +459,104 @@ class ChatWidget {
     return pairs;
   }
 
+  showMessageTooltip(bubble, messageIndex, messageRole) {
+    // Remove any existing tooltip
+    const existingTooltip = document.querySelector('.message-tooltip');
+    if (existingTooltip) existingTooltip.remove();
+
+    // Create tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'message-tooltip';
+    tooltip.innerHTML = `
+      <button class="tooltip-btn" data-action="copy">Copy</button>
+      ${messageRole === 'user' ? '<button class="tooltip-btn" data-action="edit">Edit</button>' : ''}
+    `;
+
+    // Position tooltip below the bubble
+    document.body.appendChild(tooltip);
+    const bubbleRect = bubble.getBoundingClientRect();
+    tooltip.style.position = 'absolute';
+    tooltip.style.top = (bubbleRect.bottom + 5) + 'px';
+    tooltip.style.left = bubbleRect.left + 'px';
+    tooltip.style.zIndex = '10000';
+
+    // Handle tooltip actions
+    tooltip.querySelector('[data-action="copy"]').addEventListener('click', () => {
+      this.copyMessage(messageIndex);
+      tooltip.remove();
+    });
+
+    const editBtn = tooltip.querySelector('[data-action="edit"]');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        this.editMessage(messageIndex);
+        tooltip.remove();
+      });
+    }
+
+    // Close tooltip when clicking outside
+    setTimeout(() => {
+      const closeHandler = (e) => {
+        if (!tooltip.contains(e.target)) {
+          tooltip.remove();
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      document.addEventListener('click', closeHandler);
+    }, 100);
+  }
+
+  async copyMessage(messageIndex) {
+    const message = this.messages[messageIndex];
+    if (!message) return;
+
+    try {
+      await navigator.clipboard.writeText(message.content);
+      console.log('Message copied to clipboard');
+      // Could add a visual feedback here
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+      // Fallback: create a temporary textarea
+      const textarea = document.createElement('textarea');
+      textarea.value = message.content;
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  }
+
+  async editMessage(messageIndex) {
+    const message = this.messages[messageIndex];
+    if (!message || message.role !== 'user') return;
+
+    // Truncate conversation to this point
+    this.messages = this.messages.slice(0, messageIndex);
+
+    // Set the message content as input
+    this.input = message.content;
+
+    // Re-render and re-send
+    this.render();
+    if (this.inputEl) {
+      this.inputEl.focus();
+    }
+
+    // Optionally auto-send after a brief delay (or let user modify first)
+    // For now, just populate the input so user can edit and send manually
+  }
+
   async handleSend() {
     if (!this.input.trim() || this.isLoading) return;
 
     const userMessage = this.input.trim();
     this.input = '';
     this.isLoading = true;
+
+    // Mark as interacted when sending a message
+    this.hasInteracted = true;
 
     // Check if this is the first message
     const isFirstMessage = this.messages.length === 0;
@@ -375,6 +612,8 @@ class ChatWidget {
         this.sendBtn.disabled = false;
         this.sendBtn.innerHTML = '          <i class="fas fa-paper-plane"></i>';
       }
+      // Save message history after conversation update
+      this.saveMessages();
     }
   }
 
@@ -386,8 +625,12 @@ class ChatWidget {
       }
 
       const api = new ChatAPI();
+
+      // Build messages to send (without the empty assistant placeholder)
+      const messagesToSend = this.messages.slice(0, -1);
+
       const streamGenerator = api.streamChat(
-        this.messages.slice(0, -1), // Don't send the empty assistant message
+        messagesToSend,
         this.providerId,
         this.model
       );
@@ -436,13 +679,16 @@ class ChatWidget {
               console.log('Params:', chunk.params);
               console.groupEnd();
 
-              fullResponse += `\n\n[Error: ${error.message}]`;
+              fullResponse += `\n\nSorry, that action failed: ${error.message}`;
               this.messages[this.messages.length - 1].content = fullResponse;
               const lastAssistantText = this.container.querySelector('.cw-pair:last-child .cw-assistant-text');
               if (lastAssistantText) {
                 lastAssistantText.innerHTML = this.renderMarkdown(fullResponse);
                 this.scrollToBottom();
               }
+
+              // Show a suggestion bubble the user can send or dismiss
+              this.showSuggestionBubble(`"${chunk.tool}" failed: ${error.message} — can you try another way?`);
             }
           } else {
             // Regular text chunk
@@ -496,12 +742,12 @@ class ChatWidget {
     const maxScroll = scrollHeight - clientHeight;
     this.progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-    // Update dot position (now horizontal)
+    // Update dot position (vertical track)
     const dot = this.container.querySelector('.cw-dot');
     const track = this.container.querySelector('.cw-track');
     if (dot && track) {
-      const trackWidth = track.offsetWidth;
-      dot.style.left = `${this.progress * trackWidth}px`;
+      const trackHeight = track.offsetHeight;
+      dot.style.top = `${this.progress * trackHeight}px`;
     }
 
     // Find active pair
@@ -552,6 +798,43 @@ class ChatWidget {
   }
 
 
+  // Show a suggestion bubble with send/delete controls.
+  // If the user sends it, it becomes a normal user message and triggers a response.
+  // If the user deletes it, it disappears with no side effects.
+  showSuggestionBubble(text) {
+    const scrollEl = this.container.querySelector(`[data-scroll="${this.panelId}"]`);
+    if (!scrollEl) return;
+
+    const listEl = scrollEl.querySelector('.cw-list');
+    if (!listEl) return;
+
+    // Build the bubble
+    const bubble = document.createElement('div');
+    bubble.className = 'cw-suggestion-bubble';
+    bubble.innerHTML = `
+      <div class="cw-suggestion-text">${this.escapeHtml(text)}</div>
+      <div class="cw-suggestion-actions">
+        <button class="cw-suggestion-send" title="Send">Send</button>
+        <button class="cw-suggestion-delete" title="Dismiss">Dismiss</button>
+      </div>
+    `;
+
+    listEl.appendChild(bubble);
+    this.scrollToBottom();
+
+    // Send: treat as a normal user message
+    bubble.querySelector('.cw-suggestion-send').addEventListener('click', () => {
+      bubble.remove();
+      this.input = text;
+      this.handleSend();
+    });
+
+    // Delete: just remove
+    bubble.querySelector('.cw-suggestion-delete').addEventListener('click', () => {
+      bubble.remove();
+    });
+  }
+
   adjustTextareaHeight() {
     if (!this.inputEl) return;
     this.inputEl.style.height = '64px';
@@ -575,26 +858,157 @@ class ChatWidget {
   }
 
   collapseChat() {
-    if (!this.scrollEl) return;
-    this.scrollEl.classList.add('collapsed');
-    const collapseBtn = this.container.querySelector(`[data-collapse="${this.panelId}"]`);
-    if (collapseBtn) {
-      collapseBtn.classList.add('collapsed');
-    }
+    if (!this.conversationArea) return;
+    this.conversationArea.classList.add('collapsed');
     // Store collapse state
     sessionStorage.setItem(`cw-collapsed-${this.panelId}`, 'true');
   }
 
   expandChat() {
-    if (!this.scrollEl) return;
-    this.scrollEl.classList.remove('collapsed');
-    const collapseBtn = this.container.querySelector(`[data-collapse="${this.panelId}"]`);
-    if (collapseBtn) {
-      collapseBtn.classList.remove('collapsed');
-    }
+    if (!this.conversationArea) return;
+    this.conversationArea.classList.remove('collapsed');
     // Clear collapse state
     sessionStorage.removeItem(`cw-collapsed-${this.panelId}`);
     this.scrollToBottom();
+  }
+
+  // Remote AI mode
+  enterRemoteMode() {
+    const inputBar = this.container.querySelector(`[data-inputbar="${this.panelId}"]`);
+    const remoteBar = this.container.querySelector(`[data-remotebar="${this.panelId}"]`);
+    const remoteOrg = this.container.querySelector(`[data-remoteorg="${this.panelId}"]`);
+    if (inputBar && remoteBar) {
+      inputBar.style.display = 'none';
+      remoteBar.style.display = 'flex';
+      if (remoteOrg) {
+        remoteOrg.style.display = 'flex';
+        this.renderRemoteOrganizer();
+      }
+      // Hide normal conversation area
+      if (this.conversationArea) this.conversationArea.style.display = 'none';
+      const remoteInput = this.container.querySelector(`[data-remoteinput="${this.panelId}"]`);
+      if (remoteInput) remoteInput.focus();
+    }
+  }
+
+  exitRemoteMode() {
+    const inputBar = this.container.querySelector(`[data-inputbar="${this.panelId}"]`);
+    const remoteBar = this.container.querySelector(`[data-remotebar="${this.panelId}"]`);
+    const remoteOrg = this.container.querySelector(`[data-remoteorg="${this.panelId}"]`);
+    if (inputBar && remoteBar) {
+      remoteBar.style.display = 'none';
+      inputBar.style.display = 'grid';
+      if (remoteOrg) remoteOrg.style.display = 'none';
+      // Restore normal conversation area
+      if (this.conversationArea) this.conversationArea.style.display = '';
+      if (this.inputEl) this.inputEl.focus();
+    }
+  }
+
+  renderRemoteOrganizer() {
+    const listEl = this.container.querySelector(`[data-remoteorglist="${this.panelId}"]`);
+    if (!listEl) return;
+
+    // Read tasks from Firestore-synced state (always up to date via onSnapshot)
+    const tasks = (window.briizPersistence?.state?.tasks || [])
+      .filter(t => t.type === 'jobPanel')
+      .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // oldest on top
+
+    if (tasks.length === 0) {
+      listEl.innerHTML = '<li class="cw-remote-org-empty">No remote tasks yet</li>';
+      return;
+    }
+
+    listEl.innerHTML = tasks.map(t => {
+      const displayId = (t.id || '').replace('tasks-', '');
+      // Find the corresponding DOM panel if it exists
+      const panelData = window.panelManager?.panels?.find(p => p.taskId === t.id);
+      const panelEl = panelData ? document.querySelector(`[data-panel-id="${panelData.id}"]`) : null;
+      const isVisible = panelEl && panelEl.style.display !== 'none';
+      const preview = t.message
+        ? (t.message.length > 50 ? t.message.substring(0, 50) + '...' : t.message)
+        : 'Untitled task';
+      const statusClass = t.status === 'complete' ? 'green' : (isVisible ? 'pink' : 'grey');
+      return `
+        <li class="cw-remote-org-item ${isVisible ? 'active' : ''}" data-task-id="${t.id}">
+          <div class="cw-remote-org-light ${statusClass}"></div>
+          <div class="cw-remote-org-text">
+            <div class="cw-remote-org-title">#${displayId}</div>
+            <div class="cw-remote-org-preview">${this.escapeHtml(preview)}</div>
+          </div>
+        </li>
+      `;
+    }).join('');
+
+    // Click to toggle the jobPanel visibility (or create it if not in DOM)
+    listEl.querySelectorAll('.cw-remote-org-item').forEach(item => {
+      item.addEventListener('click', async () => {
+        const taskId = item.dataset.taskId;
+        await this.toggleJobPanel(taskId);
+        this.renderRemoteOrganizer();
+      });
+    });
+  }
+
+  async toggleJobPanel(taskId) {
+    // Find existing panel for this task
+    const panelData = window.panelManager?.panels?.find(p => p.taskId === taskId);
+
+    if (panelData) {
+      // Panel exists in DOM — toggle visibility
+      const panelEl = document.querySelector(`[data-panel-id="${panelData.id}"]`);
+      if (panelEl) {
+        panelEl.style.display = panelEl.style.display === 'none' ? '' : 'none';
+      }
+    } else {
+      // Panel not in DOM — create it from the Firestore task data
+      const task = (window.briizPersistence?.state?.tasks || []).find(t => t.id === taskId);
+      if (task && window.panelManager) {
+        const displayId = taskId.replace('tasks-', '');
+        await window.panelManager.createNewPanel('jobPanel', `Task ID #${displayId}`, {
+          source: 'api',
+          jobMessage: task.message || '',
+          taskId: taskId
+        });
+      }
+    }
+  }
+
+  async handleRemoteSend() {
+    const remoteInput = this.container.querySelector(`[data-remoteinput="${this.panelId}"]`);
+    if (!remoteInput || !remoteInput.value.trim()) return;
+    const message = remoteInput.value.trim();
+    remoteInput.value = '';
+
+    const taskId = `tasks-${Date.now()}`;
+
+    // Create the jobPanel via panelManager
+    if (window.panelManager) {
+      const displayId = taskId.replace('tasks-', '');
+      await window.panelManager.createNewPanel('jobPanel', `Task ID #${displayId}`, {
+        source: 'api',
+        jobMessage: message,
+        taskId: taskId
+      });
+    }
+
+    // Save to Firestore tasks bucket
+    if (window.briizPersistence) {
+      window.briizPersistence.queueFirebaseSave('tasks', taskId, {
+        id: taskId,
+        type: 'jobPanel',
+        message: message,
+        status: 'running',
+        createdAt: Date.now(),
+        actions: [],
+        taskMd: null
+      });
+    }
+
+    console.log('[RemoteAI] Job created:', taskId, message);
+
+    // Refresh the remote organizer list
+    this.renderRemoteOrganizer();
   }
 
   // Lifecycle methods

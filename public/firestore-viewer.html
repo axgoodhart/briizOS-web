@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Filesystem Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(30, 30, 45, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-left p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .auth-status {
+            text-align: right;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            background: rgba(20, 20, 35, 0.8);
+            border-right: 1px solid rgba(102, 126, 234, 0.3);
+            overflow-y: auto;
+            max-height: 85vh;
+        }
+
+        .auth-section {
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.15);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .auth-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 0.9em;
+        }
+
+        .auth-section input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(30, 30, 45, 0.9);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: inherit;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .user-selector {
+            padding: 15px 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .user-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 0.9em;
+        }
+
+        .user-selector input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(30, 30, 45, 0.9);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 0.9em;
+        }
+
+        .search-box {
+            padding: 15px 20px;
+            background: rgba(102, 126, 234, 0.05);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            background: rgba(30, 30, 45, 0.9);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: inherit;
+        }
+
+        .filter-controls {
+            padding: 15px 20px;
+            background: rgba(20, 20, 35, 0.5);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .filter-label {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            border-radius: 4px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        .filter-btn.active {
+            background: rgba(102, 126, 234, 0.5);
+            border-color: #667eea;
+        }
+
+        .tree-view {
+            padding: 10px;
+        }
+
+        .tree-node {
+            margin: 4px 0;
+            user-select: none;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tree-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .tree-item.selected {
+            background: rgba(102, 126, 234, 0.4);
+            border-left: 3px solid #667eea;
+        }
+
+        .tree-item.loading {
+            opacity: 0.6;
+        }
+
+        .tree-icon {
+            margin-right: 8px;
+            font-size: 1.2em;
+            min-width: 20px;
+        }
+
+        .tree-label {
+            flex: 1;
+            font-size: 0.95em;
+        }
+
+        .tree-count {
+            font-size: 0.8em;
+            color: #888;
+            background: rgba(102, 126, 234, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .content-area {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 85vh;
+        }
+
+        .content-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .content-header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .content-icon {
+            font-size: 2em;
+        }
+
+        .content-title h2 {
+            font-size: 1.8em;
+            color: #667eea;
+        }
+
+        .content-title p {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .refresh-btn {
+            padding: 10px 20px;
+            background: rgba(102, 126, 234, 0.3);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(102, 126, 234, 0.5);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            word-break: break-all;
+        }
+
+        .document-list {
+            background: rgba(20, 20, 35, 0.6);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .document-item {
+            background: rgba(30, 30, 45, 0.8);
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .document-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .doc-id {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .doc-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .doc-action-btn {
+            padding: 4px 10px;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            border-radius: 4px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s;
+        }
+
+        .doc-action-btn:hover {
+            background: rgba(102, 126, 234, 0.4);
+        }
+
+        .doc-action-btn.delete {
+            background: rgba(255, 100, 100, 0.2);
+            border-color: rgba(255, 100, 100, 0.4);
+        }
+
+        .doc-action-btn.delete:hover {
+            background: rgba(255, 100, 100, 0.4);
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 4px;
+        }
+
+        .field-key {
+            font-weight: bold;
+            color: #88f;
+            font-size: 0.85em;
+            margin-bottom: 4px;
+        }
+
+        .field-value {
+            color: #afa;
+            font-size: 0.9em;
+            word-break: break-word;
+        }
+
+        .field-value.editable {
+            background: rgba(30, 30, 45, 0.9);
+            padding: 6px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 4px;
+            min-height: 30px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(255, 50, 50, 0.2);
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 3px solid #ff6b6b;
+        }
+
+        .success {
+            background: rgba(50, 255, 50, 0.2);
+            color: #6bff6b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 3px solid #6bff6b;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(102, 126, 234, 0.3);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .badge-local {
+            background: rgba(100, 200, 100, 0.3);
+            color: #6f6;
+        }
+
+        .badge-web {
+            background: rgba(100, 150, 255, 0.3);
+            color: #88f;
+        }
+
+        .badge-shared {
+            background: rgba(255, 200, 50, 0.3);
+            color: #fc6;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(30, 30, 45, 0.98);
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #888;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        .json-editor {
+            background: rgba(20, 20, 35, 0.8);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            font-family: 'Courier New', monospace;
+            color: #afa;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .json-editor:focus {
+            outline: 2px solid #667eea;
+        }
+
+        textarea.json-editor {
+            width: 100%;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div>
+                    <h1>🗂️ Firestore Filesystem Viewer</h1>
+                    <p>Visual interface for briizOS Firestore data structure</p>
+                </div>
+            </div>
+            <div class="auth-status" id="authStatus">
+                <span>Not authenticated</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="auth-section" id="authSection">
+                    <label for="authEmail">Email:</label>
+                    <input type="email" id="authEmail" placeholder="Enter email">
+                    <label for="authPassword">Password:</label>
+                    <input type="password" id="authPassword" placeholder="Enter password">
+                    <button class="btn" id="loginBtn">Login</button>
+                    <button class="btn btn-secondary" id="logoutBtn" style="display:none;">Logout</button>
+                </div>
+
+                <div class="user-selector">
+                    <label for="userId">User ID:</label>
+                    <input type="text" id="userId" placeholder="Enter user ID or use authenticated UID">
+                    <button class="btn" id="loadBtn" disabled>Load Collections</button>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Search documents..." disabled>
+                </div>
+
+                <div class="filter-controls">
+                    <span class="filter-label">Filter by source:</span>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="shared">Shared</button>
+                        <button class="filter-btn" data-filter="local">Local</button>
+                        <button class="filter-btn" data-filter="web">Web</button>
+                    </div>
+                </div>
+
+                <div class="tree-view" id="treeView">
+                    <div class="empty-state" style="padding: 20px; font-size: 0.9em;">
+                        <p>Login and load to view collections</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area" id="contentArea">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📂</div>
+                    <h3>Welcome to Firestore Viewer</h3>
+                    <p>Login and enter a User ID to view the filesystem structure</p>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #888;">
+                        Features: Real-time data loading • Search • Filter • View & Edit documents
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Edit Document</h2>
+                <span class="modal-close" onclick="closeEditModal()">✕</span>
+            </div>
+            <div id="modalBody">
+                <textarea class="json-editor" id="jsonEditor" rows="15"></textarea>
+                <button class="btn" onclick="saveDocument()" style="margin-top: 15px;">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase imports
+        import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+        import {
+            getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+        } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+        import {
+            getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, collection, query, orderBy, limit, Timestamp
+        } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDibdtqeea1yHqi4ddlZCmAhuq269iK06c",
+            authDomain: "briizos.firebaseapp.com",
+            projectId: "briizos",
+            storageBucket: "briizos.firebasestorage.app",
+            messagingSenderId: "719807847926",
+            appId: "1:719807847926:web:96ff6b12166b2dec25fbd7",
+            measurementId: "G-DCXFC8CS51"
+        };
+
+        // Initialize Firebase
+        const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Firestore Schema Definition
+        const FIRESTORE_SCHEMA = {
+            collections: [
+                { name: 'panels', icon: '📋', source: 'shared', description: 'UI panels and notes' },
+                { name: 'tasks', icon: '✓', source: 'shared', description: 'Task management' },
+                { name: 'events', icon: '📅', source: 'shared', description: 'Calendar events' },
+                { name: 'organizer', icon: '📊', source: 'shared', description: 'Organizer items' },
+                { name: 'desktopChatMessages', icon: '💬', source: 'local', description: 'Desktop chat messages' },
+                { name: 'desktopSessions', icon: '🖥️', source: 'local', description: 'Desktop sessions' },
+                { name: 'desktopSelectedFiles', icon: '📁', source: 'local', description: 'Selected files' },
+                { name: 'desktopSettings', icon: '⚙️', source: 'local', description: 'Desktop settings' },
+                { name: 'desktopLogs', icon: '📝', source: 'local', description: 'Desktop logs' },
+                { name: 'desktopRemoteChat', icon: '🌐', source: 'local', description: 'Remote chat' },
+                { name: 'app', icon: '⚡', source: 'web', description: 'Web app state' },
+                { name: 'snapshots', icon: '📸', source: 'web', description: 'App snapshots' }
+            ]
+        };
+
+        // State
+        let currentUser = null;
+        let selectedCollection = null;
+        let collectionsData = {};
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let currentEditDoc = null;
+
+        // Auth state handler
+        onAuthStateChanged(auth, (user) => {
+            const authStatus = document.getElementById('authStatus');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const userIdInput = document.getElementById('userId');
+
+            if (user) {
+                authStatus.innerHTML = `<span style="color: #6f6;">✓ ${user.email}</span>`;
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                loadBtn.disabled = false;
+                userIdInput.value = user.uid;
+                document.getElementById('searchInput').disabled = false;
+            } else {
+                authStatus.innerHTML = '<span>Not authenticated</span>';
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                loadBtn.disabled = true;
+                document.getElementById('searchInput').disabled = true;
+            }
+        });
+
+        // Login handler
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            if (!email || !password) {
+                showError('Please enter email and password');
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showSuccess('Logged in successfully!');
+            } catch (error) {
+                showError(`Login failed: ${error.message}`);
+            }
+        });
+
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                currentUser = null;
+                collectionsData = {};
+                renderTreeView();
+                showWelcomeScreen();
+                showSuccess('Logged out successfully!');
+            } catch (error) {
+                showError(`Logout failed: ${error.message}`);
+            }
+        });
+
+        // Load button handler
+        document.getElementById('loadBtn').addEventListener('click', async () => {
+            const userId = document.getElementById('userId').value.trim();
+            if (!userId) {
+                showError('Please enter a user ID');
+                return;
+            }
+
+            currentUser = userId;
+            await loadAllCollections();
+        });
+
+        // Load all collections
+        async function loadAllCollections() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading collections...</p></div>';
+
+            collectionsData = {};
+
+            for (const collectionDef of FIRESTORE_SCHEMA.collections) {
+                try {
+                    const collRef = collection(db, 'users', currentUser, collectionDef.name);
+                    const snapshot = await getDocs(collRef);
+                    
+                    const docs = [];
+                    snapshot.forEach(doc => {
+                        docs.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    collectionsData[collectionDef.name] = {
+                        ...collectionDef,
+                        count: docs.length,
+                        documents: docs
+                    };
+                } catch (error) {
+                    console.error(`Error loading ${collectionDef.name}:`, error);
+                    collectionsData[collectionDef.name] = {
+                        ...collectionDef,
+                        count: 0,
+                        documents: [],
+                        error: error.message
+                    };
+                }
+            }
+
+            renderTreeView();
+            contentArea.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">✓</div>
+                    <h3>Collections Loaded for: ${currentUser}</h3>
+                    <p>Select a collection from the left sidebar to view its contents</p>
+                    <p style="margin-top: 15px; color: #888;">
+                        Total collections: ${Object.keys(collectionsData).length}
+                    </p>
+                </div>
+            `;
+        }
+
+        // Render tree view
+        function renderTreeView() {
+            const treeView = document.getElementById('treeView');
+            
+            if (!currentUser || !Object.keys(collectionsData).length) {
+                treeView.innerHTML = '<div class="empty-state" style="padding: 20px; font-size: 0.9em;"><p>No data loaded</p></div>';
+                return;
+            }
+
+            const filtered = Object.values(collectionsData).filter(col => {
+                if (currentFilter === 'all') return true;
+                return col.source === currentFilter;
+            });
+
+            let html = '';
+            filtered.forEach(col => {
+                const badge = col.source === 'local' ? 'badge-local' :
+                             col.source === 'web' ? 'badge-web' : 'badge-shared';
+                
+                html += `
+                    <div class="tree-node">
+                        <div class="tree-item ${selectedCollection?.name === col.name ? 'selected' : ''}"
+                             data-action="select-collection" data-col="${escapeHtml(col.name)}">
+                            <span class="tree-icon">${col.icon}</span>
+                            <span class="tree-label">${escapeHtml(col.name)}</span>
+                            <span class="tree-count">${col.count}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            treeView.innerHTML = html || '<div class="empty-state" style="padding: 20px;"><p>No collections match filter</p></div>';
+        }
+
+        // Select collection
+        window.selectCollection = async function(collectionName) {
+            selectedCollection = collectionsData[collectionName];
+            renderTreeView();
+            renderCollectionView(selectedCollection);
+        };
+
+        // Render collection view
+        function renderCollectionView(col) {
+            const contentArea = document.getElementById('contentArea');
+            const badge = col.source === 'local' ? 'badge-local' :
+                         col.source === 'web' ? 'badge-web' : 'badge-shared';
+
+            let docs = col.documents || [];
+            
+            // Apply search filter
+            if (searchQuery) {
+                docs = docs.filter(doc => {
+                    const searchStr = JSON.stringify(doc).toLowerCase();
+                    return searchStr.includes(searchQuery.toLowerCase());
+                });
+            }
+
+            let html = `
+                <div class="content-header">
+                    <div class="content-header-left">
+                        <div class="content-icon">${col.icon}</div>
+                        <div class="content-title">
+                            <h2>${col.name} <span class="badge ${badge}">${col.source}</span></h2>
+                            <p>${col.description}</p>
+                        </div>
+                    </div>
+                    <button class="refresh-btn" data-action="refresh" data-col="${escapeHtml(col.name)}">🔄 Refresh</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Documents</div>
+                        <div class="stat-value">${col.count}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Filtered Results</div>
+                        <div class="stat-value">${docs.length}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Collection Path</div>
+                        <div class="stat-value" style="font-size: 0.9em;">users/{uid}/${col.name}</div>
+                    </div>
+                </div>
+            `;
+
+            if (col.error) {
+                html += `<div class="error">Error loading collection: ${col.error}</div>`;
+            }
+
+            if (docs.length === 0) {
+                html += `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>No documents found</h3>
+                        <p>${searchQuery ? 'Try a different search query' : 'This collection is empty'}</p>
+                    </div>
+                `;
+            } else {
+                html += `<div class="document-list"><h3 style="margin-bottom: 15px; color: #667eea;">📄 Documents (${docs.length})</h3>`;
+
+                docs.forEach(doc => {
+                    const safeCol = escapeHtml(col.name);
+                    const safeDocId = escapeHtml(doc.id);
+                    html += `
+                        <div class="document-item">
+                            <div class="doc-header">
+                                <div class="doc-id">🔑 ${safeDocId}</div>
+                                <div class="doc-actions">
+                                    <button class="doc-action-btn" data-action="view" data-col="${safeCol}" data-doc="${safeDocId}">👁️ View JSON</button>
+                                    <button class="doc-action-btn" data-action="edit" data-col="${safeCol}" data-doc="${safeDocId}">✏️ Edit</button>
+                                    <button class="doc-action-btn delete" data-action="delete" data-col="${safeCol}" data-doc="${safeDocId}">🗑️ Delete</button>
+                                </div>
+                            </div>
+                            <div class="field-grid">
+                    `;
+
+                    Object.entries(doc).forEach(([key, value]) => {
+                        if (key === 'id') return;
+                        let displayValue;
+                        if (value === null || value === undefined) {
+                            displayValue = 'null';
+                        } else if (typeof value === 'object') {
+                            displayValue = JSON.stringify(value, null, 2);
+                        } else if (typeof value === 'string' && value.length > 100) {
+                            displayValue = value.substring(0, 100) + '...';
+                        } else {
+                            displayValue = String(value);
+                        }
+
+                        html += `
+                            <div class="field">
+                                <span class="field-key">${escapeHtml(key)}</span>
+                                <span class="field-value">${escapeHtml(displayValue)}</span>
+                            </div>
+                        `;
+                    });
+
+                    html += '</div></div>';
+                });
+
+                html += '</div>';
+            }
+
+            contentArea.innerHTML = html;
+        }
+
+        // Refresh collection
+        window.refreshCollection = async function(collectionName) {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '<div class="loading"><div class="spinner"></div><p>Refreshing collection...</p></div>';
+
+            try {
+                const collRef = collection(db, 'users', currentUser, collectionName);
+                const snapshot = await getDocs(collRef);
+                
+                const docs = [];
+                snapshot.forEach(doc => {
+                    docs.push({ id: doc.id, ...doc.data() });
+                });
+
+                collectionsData[collectionName].documents = docs;
+                collectionsData[collectionName].count = docs.length;
+                
+                selectedCollection = collectionsData[collectionName];
+                renderTreeView();
+                renderCollectionView(selectedCollection);
+                showSuccess('Collection refreshed!');
+            } catch (error) {
+                showError(`Failed to refresh: ${error.message}`);
+            }
+        };
+
+        // View document as JSON
+        window.viewDocument = function(collectionName, docId) {
+            const found = collectionsData[collectionName]?.documents.find(d => d.id === docId);
+            if (!found) return;
+
+            const modal = document.getElementById('editModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const jsonEditor = document.getElementById('jsonEditor');
+
+            modalTitle.textContent = `View Document: ${docId}`;
+            jsonEditor.value = JSON.stringify(serializeForEditor(found), null, 2);
+            jsonEditor.disabled = true;
+            modal.classList.add('active');
+
+            // Hide save button for view mode
+            modal.querySelector('.btn').style.display = 'none';
+        };
+
+        // Edit document
+        window.editDocument = function(collectionName, docId) {
+            const found = collectionsData[collectionName]?.documents.find(d => d.id === docId);
+            if (!found) return;
+
+            currentEditDoc = { collection: collectionName, id: docId };
+
+            const modal = document.getElementById('editModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const jsonEditor = document.getElementById('jsonEditor');
+
+            modalTitle.textContent = `Edit Document: ${docId}`;
+            jsonEditor.value = JSON.stringify(serializeForEditor(found), null, 2);
+            jsonEditor.disabled = false;
+            modal.classList.add('active');
+
+            // Show save button for edit mode
+            modal.querySelector('.btn').style.display = 'block';
+        };
+
+        // Save document
+        window.saveDocument = async function() {
+            if (!currentEditDoc) return;
+
+            const jsonEditor = document.getElementById('jsonEditor');
+            let newData;
+
+            try {
+                newData = JSON.parse(jsonEditor.value);
+            } catch (error) {
+                showError('Invalid JSON format');
+                return;
+            }
+
+            // Remove 'id' from data if present (it's stored in the document path, not the data)
+            // Restore Firestore Timestamps from tagged or raw {seconds, nanoseconds} objects
+            const dataToSave = deserializeFromEditor({ ...newData });
+            delete dataToSave.id;
+
+            try {
+                const docRef = doc(db, 'users', currentUser, currentEditDoc.collection, currentEditDoc.id);
+                
+                // Use setDoc without merge to completely replace the document
+                // This ensures deleted fields are actually removed
+                await setDoc(docRef, dataToSave);
+                
+                console.log(`✓ Document saved to Firestore: users/${currentUser}/${currentEditDoc.collection}/${currentEditDoc.id}`);
+                console.log('Data written:', dataToSave);
+                
+                // Update local cache
+                const docIndex = collectionsData[currentEditDoc.collection].documents.findIndex(d => d.id === currentEditDoc.id);
+                if (docIndex !== -1) {
+                    collectionsData[currentEditDoc.collection].documents[docIndex] = { id: currentEditDoc.id, ...dataToSave };
+                }
+
+                closeEditModal();
+                renderCollectionView(selectedCollection);
+                showSuccess('✓ Document saved to Firestore successfully!');
+            } catch (error) {
+                console.error('Save error:', error);
+                showError(`Failed to save: ${error.message}`);
+            }
+        };
+
+        // Delete document
+        window.deleteDocument = async function(collectionName, docId) {
+            if (!confirm(`Are you sure you want to delete document "${docId}"?`)) return;
+
+            try {
+                const docRef = doc(db, 'users', currentUser, collectionName, docId);
+                await deleteDoc(docRef);
+                
+                // Update local cache
+                collectionsData[collectionName].documents = collectionsData[collectionName].documents.filter(d => d.id !== docId);
+                collectionsData[collectionName].count--;
+
+                renderTreeView();
+                renderCollectionView(selectedCollection);
+                showSuccess('Document deleted successfully!');
+            } catch (error) {
+                showError(`Failed to delete: ${error.message}`);
+            }
+        };
+
+        // Close edit modal
+        window.closeEditModal = function() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditDoc = null;
+        };
+
+        // Search handler
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            if (selectedCollection) {
+                renderCollectionView(selectedCollection);
+            }
+        });
+
+        // Filter handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderTreeView();
+            });
+        });
+
+        // Utility functions
+        // Convert Firestore Timestamp objects to a tagged format for JSON editing
+        function serializeForEditor(obj) {
+            if (obj === null || obj === undefined) return obj;
+            if (obj instanceof Timestamp || (obj && typeof obj.toDate === 'function')) {
+                return { __type: 'Timestamp', value: obj.toDate().toISOString() };
+            }
+            if (Array.isArray(obj)) return obj.map(serializeForEditor);
+            if (typeof obj === 'object') {
+                const result = {};
+                for (const [k, v] of Object.entries(obj)) {
+                    result[k] = serializeForEditor(v);
+                }
+                return result;
+            }
+            return obj;
+        }
+
+        // Convert tagged Timestamp objects back to Firestore Timestamps when saving
+        function deserializeFromEditor(obj) {
+            if (obj === null || obj === undefined) return obj;
+            if (Array.isArray(obj)) return obj.map(deserializeFromEditor);
+            if (typeof obj === 'object') {
+                if (obj.__type === 'Timestamp' && obj.value) {
+                    return Timestamp.fromDate(new Date(obj.value));
+                }
+                // Also handle raw {seconds, nanoseconds} objects as Timestamps
+                if (typeof obj.seconds === 'number' && typeof obj.nanoseconds === 'number' && Object.keys(obj).length === 2) {
+                    return new Timestamp(obj.seconds, obj.nanoseconds);
+                }
+                const result = {};
+                for (const [k, v] of Object.entries(obj)) {
+                    result[k] = deserializeFromEditor(v);
+                }
+                return result;
+            }
+            return obj;
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function showError(message) {
+            const contentArea = document.getElementById('contentArea');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            contentArea.insertBefore(errorDiv, contentArea.firstChild);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            const contentArea = document.getElementById('contentArea');
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            contentArea.insertBefore(successDiv, contentArea.firstChild);
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        function showWelcomeScreen() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📂</div>
+                    <h3>Welcome to Firestore Viewer</h3>
+                    <p>Login and enter a User ID to view the filesystem structure</p>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #888;">
+                        Features: Real-time data loading • Search • Filter • View & Edit documents
+                    </p>
+                </div>
+            `;
+        }
+
+        // Event delegation for document action buttons
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const colName = btn.dataset.col;
+            const docId = btn.dataset.doc;
+
+            switch (action) {
+                case 'view':
+                    viewDocument(colName, docId);
+                    break;
+                case 'edit':
+                    editDocument(colName, docId);
+                    break;
+                case 'delete':
+                    deleteDocument(colName, docId);
+                    break;
+                case 'refresh':
+                    refreshCollection(colName);
+                    break;
+                case 'select-collection':
+                    selectCollection(colName);
+                    break;
+            }
+        });
+
+        // Close modal on outside click
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target.id === 'editModal') {
+                closeEditModal();
+            }
+        });
+    </script>
+</body>
+</html>
