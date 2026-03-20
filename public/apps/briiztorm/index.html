@@ -601,7 +601,7 @@ filter:brightness(.8)contrast(1.1)saturate(.6);
 <!-- Inline minimal Gemini API -->
 <script>
 // Minimal Gemini streaming for Briiztorm
-const GEMINI_API_KEY = 'AIzaSyBy8D-ZuZLUaJADsN2dTJTjKAaQhPtx3N8';
+const GEMINI_API_KEY = '123456789';
 
 async function* streamGemini(messages, model = 'gemini-pro') {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;

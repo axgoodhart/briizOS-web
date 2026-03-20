@@ -1,3 +1,4 @@
+
 // Chat Widget Module - Native BriizOS Application
 class ChatWidget {
   constructor(container, panelId) {
@@ -162,13 +163,20 @@ class ChatWidget {
 
       <div class="cw-root" id = "aichat">
 
-      <!-- Remote task organizer (sibling of conversation area, same position as cw-scroll) -->
-      <div class="cw-remote-organizer cw-scroll" data-remoteorg="${this.panelId}" style="display: none;">
-        <div class="cw-remote-org-header">
-          <svg viewBox="0 0 24 24" fill="currentColor" class="cw-remote-org-icon"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H15A2,2 0 0,1 17,9V15A2,2 0 0,1 15,17H9A2,2 0 0,1 7,15V9A2,2 0 0,1 9,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M12,4A1,1 0 0,0 11,5A1,1 0 0,0 12,6A1,1 0 0,0 13,5A1,1 0 0,0 12,4M9,9V15H15V9H9M11,11H13V13H11V11Z"/></svg>
-          <span>Remote Tasks</span>
+      <!-- Remote AI workspace (row flex: task list + detail viewer) -->
+      <div class="cw-remote-workspace" data-remoteworkspace="${this.panelId}" style="display: none;">
+        <!-- Left: Task list -->
+        <div class="cw-remote-organizer" data-remoteorg="${this.panelId}">
+          <div class="cw-remote-org-header">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="cw-remote-org-icon"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H15A2,2 0 0,1 17,9V15A2,2 0 0,1 15,17H9A2,2 0 0,1 7,15V9A2,2 0 0,1 9,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M12,4A1,1 0 0,0 11,5A1,1 0 0,0 12,6A1,1 0 0,0 13,5A1,1 0 0,0 12,4M9,9V15H15V9H9M11,11H13V13H11V11Z"/></svg>
+            <span>Remote Tasks</span>
+          </div>
+          <ul class="cw-remote-org-list" data-remoteorglist="${this.panelId}"></ul>
         </div>
-        <ul class="cw-remote-org-list" data-remoteorglist="${this.panelId}"></ul>
+        <!-- Right: Task detail viewer -->
+        <div class="cw-remote-detail" data-remotedetail="${this.panelId}">
+          <div class="cw-remote-detail-empty">Select a task to view details</div>
+        </div>
       </div>
 
       <!-- Conversation area wrapper (contains collapse button, scroll panel, and nav) -->
@@ -308,8 +316,12 @@ class ChatWidget {
         if (this.conversationArea && this.conversationArea.classList.contains('collapsed')) {
           this.expandChat();
         }
+        //filter parent window to darken background
+        parent.filterParentWindow();
       });
     }
+
+    
 
     // Collapse button
     const collapseBtn = this.container.querySelector(`[data-collapse="${this.panelId}"]`);
@@ -876,12 +888,12 @@ class ChatWidget {
   enterRemoteMode() {
     const inputBar = this.container.querySelector(`[data-inputbar="${this.panelId}"]`);
     const remoteBar = this.container.querySelector(`[data-remotebar="${this.panelId}"]`);
-    const remoteOrg = this.container.querySelector(`[data-remoteorg="${this.panelId}"]`);
+    const workspace = this.container.querySelector(`[data-remoteworkspace="${this.panelId}"]`);
     if (inputBar && remoteBar) {
       inputBar.style.display = 'none';
       remoteBar.style.display = 'flex';
-      if (remoteOrg) {
-        remoteOrg.style.display = 'flex';
+      if (workspace) {
+        workspace.style.display = 'flex';
         this.renderRemoteOrganizer();
       }
       // Hide normal conversation area
@@ -894,11 +906,11 @@ class ChatWidget {
   exitRemoteMode() {
     const inputBar = this.container.querySelector(`[data-inputbar="${this.panelId}"]`);
     const remoteBar = this.container.querySelector(`[data-remotebar="${this.panelId}"]`);
-    const remoteOrg = this.container.querySelector(`[data-remoteorg="${this.panelId}"]`);
+    const workspace = this.container.querySelector(`[data-remoteworkspace="${this.panelId}"]`);
     if (inputBar && remoteBar) {
       remoteBar.style.display = 'none';
       inputBar.style.display = 'grid';
-      if (remoteOrg) remoteOrg.style.display = 'none';
+      if (workspace) workspace.style.display = 'none';
       // Restore normal conversation area
       if (this.conversationArea) this.conversationArea.style.display = '';
       if (this.inputEl) this.inputEl.focus();
@@ -912,42 +924,197 @@ class ChatWidget {
     // Read tasks from Firestore-synced state (always up to date via onSnapshot)
     const tasks = (window.briizPersistence?.state?.tasks || [])
       .filter(t => t.type === 'jobPanel')
-      .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // oldest on top
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // newest on top
 
     if (tasks.length === 0) {
       listEl.innerHTML = '<li class="cw-remote-org-empty">No remote tasks yet</li>';
       return;
     }
 
+    const selectedId = this._selectedTaskId;
+
     listEl.innerHTML = tasks.map(t => {
       const displayId = (t.id || '').replace('tasks-', '');
-      // Find the corresponding DOM panel if it exists
-      const panelData = window.panelManager?.panels?.find(p => p.taskId === t.id);
-      const panelEl = panelData ? document.querySelector(`[data-panel-id="${panelData.id}"]`) : null;
-      const isVisible = panelEl && panelEl.style.display !== 'none';
-      const preview = t.message
-        ? (t.message.length > 50 ? t.message.substring(0, 50) + '...' : t.message)
+      const preview = t.title
+        ? (t.title.length > 50 ? t.title.substring(0, 50) + '...' : t.title)
         : 'Untitled task';
-      const statusClass = t.status === 'complete' ? 'green' : (isVisible ? 'pink' : 'grey');
+      const isComplete = t.status === 'complete';
+      const isRunning = t.status === 'running';
+      const statusClass = isComplete ? 'green' : (isRunning ? 'pink' : 'grey');
+      const isSelected = selectedId === t.id;
+      const badgeHtml = isComplete
+        ? '<span class="cw-remote-badge complete">COMPLETE</span>'
+        : isRunning
+          ? '<span class="cw-remote-badge running">RUNNING</span>'
+          : '<span class="cw-remote-badge queued">QUEUED</span>';
       return `
-        <li class="cw-remote-org-item ${isVisible ? 'active' : ''}" data-task-id="${t.id}">
+        <li class="cw-remote-org-item ${isSelected ? 'active' : ''}" data-task-id="${t.id}">
           <div class="cw-remote-org-light ${statusClass}"></div>
           <div class="cw-remote-org-text">
-            <div class="cw-remote-org-title">#${displayId}</div>
             <div class="cw-remote-org-preview">${this.escapeHtml(preview)}</div>
+          </div>
+          <div class="cw-remote-org-meta">
+            ${badgeHtml}
           </div>
         </li>
       `;
     }).join('');
 
-    // Click to toggle the jobPanel visibility (or create it if not in DOM)
+    // Click to select/deselect task and show/hide detail viewer
     listEl.querySelectorAll('.cw-remote-org-item').forEach(item => {
-      item.addEventListener('click', async () => {
+      item.addEventListener('click', () => {
         const taskId = item.dataset.taskId;
-        await this.toggleJobPanel(taskId);
-        this.renderRemoteOrganizer();
+        const detailEl = this.container.querySelector(`[data-remotedetail="${this.panelId}"]`);
+
+        if (this._selectedTaskId === taskId) {
+          // Deselect — animate out then clear
+          if (detailEl) detailEl.classList.add('closing');
+          setTimeout(() => {
+            this._selectedTaskId = null;
+            this.renderRemoteOrganizer();
+            if (detailEl) {
+              detailEl.classList.remove('closing');
+              detailEl.innerHTML = '<div class="cw-remote-detail-empty">Select a task to view details</div>';
+            }
+          }, 200);
+        } else {
+          // Select new task — if switching, animate out then in
+          if (this._selectedTaskId && detailEl) {
+            detailEl.classList.add('closing');
+            setTimeout(() => {
+              detailEl.classList.remove('closing');
+              this._selectedTaskId = taskId;
+              this.renderRemoteOrganizer();
+              this.renderRemoteDetail(taskId);
+            }, 150);
+          } else {
+            this._selectedTaskId = taskId;
+            this.renderRemoteOrganizer();
+            this.renderRemoteDetail(taskId);
+          }
+        }
       });
     });
+  }
+
+  renderRemoteDetail(taskId) {
+    const detailEl = this.container.querySelector(`[data-remotedetail="${this.panelId}"]`);
+    if (!detailEl) return;
+
+    const task = (window.briizPersistence?.state?.tasks || []).find(t => t.id === taskId);
+    if (!task) {
+      detailEl.innerHTML = '<div class="cw-remote-detail-empty">Task not found</div>';
+      return;
+    }
+
+    const displayId = (task.id || '').replace('tasks-', '');
+    const actions = task.actions || [];
+    const isRunning = task.status === 'running';
+
+    const actionsHtml = actions.length > 0
+      ? `<ol class="cw-remote-detail-actions-list">${actions.map(a => {
+          const label = a.title || a.text || a.name || 'Untitled step';
+          return `<li>${this.escapeHtml(label)}</li>`;
+        }).join('')}</ol>`
+      : '<span class="cw-remote-detail-none">No actions yet</span>';
+
+    const statusHtml = actions.length > 0
+      ? `<ol class="cw-remote-detail-status-list">${actions.map(a => {
+          const stepStatus = a.completed ? 'Done' : (a.status || 'Pending');
+          const stepClass = a.completed ? 'done' : (a.status === 'running' ? 'running' : 'pending');
+          return `<li class="cw-remote-step-${stepClass}">${this.escapeHtml(stepStatus)}</li>`;
+        }).join('')}</ol>`
+      : '<span class="cw-remote-detail-none">--</span>';
+
+    detailEl.innerHTML = `
+      <div class="cw-remote-detail-header">Task ID #${this.escapeHtml(displayId)}</div>
+      <div class="cw-remote-detail-grid">
+        <div class="cw-remote-detail-label">User:</div>
+        <div class="cw-remote-detail-value">${this.escapeHtml(task.title || 'Untitled')}</div>
+
+        <div class="cw-remote-detail-label">Actions:</div>
+        <div class="cw-remote-detail-value">${actionsHtml}</div>
+
+        <div class="cw-remote-detail-label">Status:</div>
+        <div class="cw-remote-detail-value">${statusHtml}</div>
+      </div>
+
+      <!-- Task log -->
+      <div class="cw-remote-detail-log-section">
+        <div class="cw-remote-detail-log-header">Task Log</div>
+        <div class="cw-remote-detail-log" data-remotelog="${this.panelId}">
+          ${this.renderTaskLog(task)}
+        </div>
+      </div>
+
+      ${isRunning ? `
+        <div class="cw-remote-detail-respond">
+          <button class="cw-remote-respond-btn" data-remoterespond="${this.panelId}">RESPOND</button>
+        </div>
+      ` : ''}
+    `;
+
+    // Respond button handler
+    const respondBtn = detailEl.querySelector(`[data-remoterespond="${this.panelId}"]`);
+    if (respondBtn) {
+      respondBtn.addEventListener('click', () => {
+        this.showRespondInput(taskId);
+      });
+    }
+  }
+
+  renderTaskLog(task) {
+    const log = task.taskLog || [];
+    if (log.length === 0) {
+      return '<div class="cw-remote-log-empty">No activity yet</div>';
+    }
+
+    return log.map(entry => {
+      const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      const typeClass = entry.type || 'status';
+
+      return `
+        <div class="cw-remote-log-entry cw-remote-log-${typeClass}">
+          <span class="cw-remote-log-time">${time}</span>
+          <span class="cw-remote-log-msg">${this.escapeHtml(entry.message || '')}</span>
+        </div>`;
+    }).join('');
+  }
+
+  showRespondInput(taskId) {
+    const detailEl = this.container.querySelector(`[data-remotedetail="${this.panelId}"]`);
+    const respondContainer = detailEl?.querySelector('.cw-remote-detail-respond');
+    if (!respondContainer) return;
+
+    respondContainer.innerHTML = `
+      <textarea class="cw-remote-respond-input" data-respondinput="${this.panelId}" placeholder="Type your response..."></textarea>
+      <div class="cw-remote-respond-actions">
+        <button class="cw-remote-respond-send" data-respondsend="${this.panelId}">SEND</button>
+        <button class="cw-remote-respond-cancel" data-respondcancel="${this.panelId}">CANCEL</button>
+      </div>
+    `;
+
+    const input = respondContainer.querySelector(`[data-respondinput="${this.panelId}"]`);
+    if (input) input.focus();
+
+    const sendBtn = respondContainer.querySelector(`[data-respondsend="${this.panelId}"]`);
+    const cancelBtn = respondContainer.querySelector(`[data-respondcancel="${this.panelId}"]`);
+
+    if (sendBtn) {
+      sendBtn.addEventListener('click', () => {
+        const text = input?.value?.trim();
+        if (text) {
+          // TODO: Phase 2 — write response to Firestore for Local to pick up
+          console.log('[RemoteAI] Response sent for task:', taskId, text);
+        }
+        this.renderRemoteDetail(taskId);
+      });
+    }
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        this.renderRemoteDetail(taskId);
+      });
+    }
   }
 
   async toggleJobPanel(taskId) {
@@ -967,7 +1134,7 @@ class ChatWidget {
         const displayId = taskId.replace('tasks-', '');
         await window.panelManager.createNewPanel('jobPanel', `Task ID #${displayId}`, {
           source: 'api',
-          jobMessage: task.message || '',
+          jobMessage: task.title || '',
           taskId: taskId
         });
       }
@@ -992,23 +1159,27 @@ class ChatWidget {
       });
     }
 
-    // Save to Firestore tasks bucket
+    // Save to Firestore tasks bucket (via adapter per SyncContract §7)
     if (window.briizPersistence) {
-      window.briizPersistence.queueFirebaseSave('tasks', taskId, {
+      window.briizPersistence.saveTask({
         id: taskId,
         type: 'jobPanel',
-        message: message,
-        status: 'running',
+        title: message,
+        status: 'active',
+        completed: false,
+        automated: true,
         createdAt: Date.now(),
         actions: [],
-        taskMd: null
+        taskLog: [{ timestamp: Date.now(), type: 'status', message: 'Task sent from Web' }]
       });
     }
 
     console.log('[RemoteAI] Job created:', taskId, message);
 
-    // Refresh the remote organizer list
+    // Select the new task and refresh
+    this._selectedTaskId = taskId;
     this.renderRemoteOrganizer();
+    this.renderRemoteDetail(taskId);
   }
 
   // Lifecycle methods

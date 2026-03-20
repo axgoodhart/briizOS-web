@@ -8,6 +8,8 @@
 /* Base styles from original chat-widget.css */
 .cw-root {
   position: relative;
+  display:flex;
+
   inset: 0;
   width: 100%;
   pointer-events:all;
@@ -17,7 +19,7 @@
   overflow-x:visible;
   transition:all  .5s cubic-bezier(0.215, 0.610, 0.355, 1);
   z-index: 5000; /* Ensure chat appears above panels */
-    transform:scale(.85);
+    transform:scale(1);
 
 }
 
@@ -173,17 +175,18 @@ opacity:1;
 .cw-input {
   transition:all 1s cubic-bezier(0.215, 1.610, 0.355, 1);
   position: absolute;
-  left: 0px;
-  right: 0px;
-  bottom: 0px;
+  left: 25%;
+  bottom: 1%;
   display: grid;
-  width: 100%;
+  width: 50%;
   grid-template-columns: 1fr auto auto;
   gap: 12px;
   overflow-x:visible;
   align-items: end;
   border-radius:44px;
   opacity:.6;
+    animation: remoteChatIn 1.2s ease-out forwards;
+
 }
 
 /* Remote AI button */
@@ -220,9 +223,7 @@ margin-left:-150%;  align-self: center;
 /* ===== Remote AI Bar ===== */
 .cw-remote-bar {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -233,11 +234,19 @@ margin-left:-150%;  align-self: center;
   box-shadow: 0 0 50px deeppink, 0 0 4px white inset;  
   gap: 16px;
   animation: remoteBarIn 0.74s cubic-bezier(0.215, 0.610, 0.355, 1.3) forwards;
+      width:80vw;
+    left:10vw;
+    bottom:18px;
 }
 
 @keyframes remoteBarIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); filter:blur(10px) contrast(3) hue-rotate(180deg) brightness(10)}
+  from { opacity: 0; transform: translateY(30px) scale(0.6); filter:blur(10px) contrast(3) hue-rotate(180deg) brightness(10)}
   to { opacity: 1; transform: translateY(0) scale(1); filter:blur(0) contrast(1) hue-rotate(0deg) brightness(1)}
+}
+
+@keyframes remoteChatIn {
+  from { opacity: 0; transform: translateY(-80px) scale(1.01); filter:saturate(0)contrast(2);}
+  to { opacity: 1; transform: translateY(0) scale(1); filter:saturate(1)contrast(1);}
 }
 
 .cw-remote-status {
@@ -334,16 +343,28 @@ margin-left:-150%;  align-self: center;
   filter: invert(1) drop-shadow(0 0 8px #ff2a6d);
 }
 
-/* ===== Remote Task Organizer ===== */
-/* Inherits positioning from .cw-scroll, overrides visuals */
-.cw-remote-organizer.cw-scroll {
-  background: rgba(10, 2, 21, 0.92);
-  border: 1px solid rgba(255, 42, 109, 0.3);
-  box-shadow: 0 0 30px rgba(255, 42, 109, 0.15), inset 0 0 10px rgba(255, 42, 109, 0.05);
+/* ===== Remote AI Workspace (row flex container) ===== */
+.cw-remote-workspace {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding:2.5% 10%;
+  flex: 1;
+  height:80%;
+  overflow: hidden;
   animation: remoteBarIn 0.4s cubic-bezier(0.215, 0.610, 0.355, 1);
-  z-index: 10;
-  pointer-events: all;
-  bottom: 120px;
+}
+
+.cw-remote-organizer {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(10, 2, 21, 0.92);
+  border-radius:40px 10px 10px 40px;
+  box-shadow:0 0 4px deeppink, 0 0 10px inset red;
+  border-right: 1px solid rgba(255, 42, 109, 0.2);
 }
 
 .cw-remote-org-header {
@@ -440,6 +461,12 @@ margin-left:-150%;  align-self: center;
   animation: remoteOrgPulse 2s infinite;
 }
 
+.cw-remote-org-light.green {
+  color: #00ff9f;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
 .cw-remote-org-light.grey {
   color: #555;
   background: currentColor;
@@ -453,24 +480,342 @@ margin-left:-150%;  align-self: center;
 
 .cw-remote-org-text {
   min-width: 0;
-}
-
-.cw-remote-org-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #ff2a6d;
-  text-shadow: 0 0 4px rgba(255,42,109,0.5);
-  letter-spacing: 0.5px;
+  flex: 1;
 }
 
 .cw-remote-org-preview {
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.6);
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.7);
   font-style: italic;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 2px;
+}
+
+.cw-remote-org-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+
+/* Status badges */
+.cw-remote-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.cw-remote-badge.complete {
+  color: #00ff9f;
+  text-shadow: 0 0 5px #00ff9f;
+}
+
+.cw-remote-badge.running {
+  color: #ff2a6d;
+  text-shadow: 0 0 5px #ff2a6d;
+  animation: remoteFlicker 1.5s infinite alternate;
+}
+
+.cw-remote-badge.queued {
+  color: #555;
+}
+
+@keyframes remoteFlicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ===== Remote Detail Panel (right side) ===== */
+
+@keyframes detailSlideIn {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes detailSlideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(8px); }
+}
+
+.cw-remote-detail.closing {
+  animation: detailSlideOut 0.2s ease-in forwards;
+}
+
+.cw-remote-detail {
+  animation: detailSlideIn 0.2s ease-out;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+    border-radius:10px 40px 40px 0px;
+  overflow-y: auto;
+  box-shadow:inset 0 0 8px cyan;
+  background: rgba(10, 2, 21, 0.8);
+}
+
+.cw-remote-detail-empty {
+  color: rgba(255,255,255,0.3);
+  font-style: italic;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 40px 16px;
+}
+
+.cw-remote-detail-header {
+  font-size: 1rem;
+  color: #ff2a6d;
+  text-shadow: 0 0 8px #ff2a6d;
+  border-bottom: 1px solid rgba(255, 42, 109, 0.3);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.cw-remote-detail-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.cw-remote-detail-label {
+  color: #05d9e8;
+  text-align: right;
+  font-weight: 700;
+  text-shadow: 0 0 4px #05d9e8;
+  white-space: nowrap;
+}
+
+.cw-remote-detail-value {
+  color: rgba(255,255,255,0.9);
+}
+
+.cw-remote-detail-notfound {
+  color: #ff2a6d;
+  font-style: italic;
+}
+
+.cw-remote-detail-none {
+  color: rgba(255,255,255,0.3);
+  font-style: italic;
+}
+
+.cw-remote-detail-actions-list,
+.cw-remote-detail-status-list {
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
+.cw-remote-detail-status-list li {
+  color: rgba(255,255,255,0.6);
+}
+
+.cw-remote-step-done { color: #00ff9f !important; }
+.cw-remote-step-running { color: #ff2a6d !important; }
+.cw-remote-step-pending { color: rgba(255,255,255,0.4) !important; }
+
+/* ===== Log section ===== */
+.cw-remote-detail-log-section {
+  margin-top: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cw-remote-detail-log-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #05d9e8;
+  text-shadow: 0 0 4px #05d9e8;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(5, 217, 232, 0.2);
+  margin-bottom: 8px;
+}
+
+.cw-remote-detail-log {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.cw-remote-log-empty {
+  color: rgba(255,255,255,0.2);
+  font-style: italic;
+  font-size: 0.75rem;
+  padding: 12px 0;
+}
+
+.cw-remote-log-entry {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.cw-remote-log-time {
+  color: rgba(255,255,255,0.25);
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  min-width: 42px;
+}
+
+.cw-remote-log-msg {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Status entries */
+.cw-remote-log-status {
+  border-left: 2px solid rgba(255,255,255,0.1);
+}
+
+.cw-remote-log-status .cw-remote-log-msg {
+  color: rgba(255,255,255,0.5);
+}
+
+/* Error entries */
+.cw-remote-log-error {
+  border-left: 2px solid rgba(255, 42, 109, 0.4);
+}
+
+.cw-remote-log-error .cw-remote-log-msg {
+  color: #ff2a6d;
+}
+
+/* Chat entries (questions/responses) */
+.cw-remote-log-chat {
+  background: rgba(255,255,255,0.03);
+  border-left: 2px solid rgba(5, 217, 232, 0.3);
+}
+
+.cw-remote-log-role {
+  font-weight: 700;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.cw-remote-log-role-question {
+  color: #ff2a6d;
+}
+
+.cw-remote-log-role-response {
+  color: #00ff9f;
+}
+
+/* Respond button */
+.cw-remote-detail-respond {
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.cw-remote-respond-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(to bottom, rgba(255,42,109,0.2), rgba(0,0,0,0.4));
+  border: 2px solid #ff2a6d;
+  color: #fff;
+  font-family: inherit;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-shadow: 0 0 10px #ff2a6d;
+  box-shadow: 0 8px 24px -8px rgba(255,42,109,0.4);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.cw-remote-respond-btn:hover {
+  box-shadow: 0 0 40px rgba(255,42,109,0.7);
+  transform: translateY(-2px);
+}
+
+.cw-remote-respond-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 20px rgba(255,42,109,0.6);
+}
+
+/* Respond input */
+.cw-remote-respond-input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,42,109,0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 10px 12px;
+  resize: none;
+  min-height: 60px;
+  outline: none;
+}
+
+.cw-remote-respond-input:focus {
+  border-color: #ff2a6d;
+  box-shadow: 0 0 10px rgba(255,42,109,0.2);
+}
+
+.cw-remote-respond-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cw-remote-respond-send,
+.cw-remote-respond-cancel {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cw-remote-respond-send {
+  background: rgba(255,42,109,0.15);
+  border-color: #ff2a6d;
+  color: #ff2a6d;
+}
+
+.cw-remote-respond-send:hover {
+  background: #ff2a6d;
+  color: #fff;
+}
+
+.cw-remote-respond-cancel {
+  background: transparent;
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.5);
+}
+
+.cw-remote-respond-cancel:hover {
+  border-color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.8);
 }
 
 *{box-sizing:border-box;}
@@ -478,6 +823,8 @@ margin-left:-150%;  align-self: center;
 .cw-root:hover, .cw-input:focus, .cw-textarea:focus, .cw-input:hover, cw-input:focus-within, .cw-textarea:hover, .cw-textarea:focus-within{
   border-color:teal; outline:none;transform:scale(1);opacity:1;
 }
+
+
 
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
@@ -498,9 +845,11 @@ margin-left:-150%;  align-self: center;
   padding: 12px 16px;
   font-size: 28px;
   touch-action: manipulation;
-  width:50vw;
+  width:100%;
 
 }
+
+
 
 .cw-textarea::placeholder {
   color: rgba(55, 185, 197, 0.9);

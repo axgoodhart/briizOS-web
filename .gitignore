@@ -4,6 +4,8 @@ logs
 # Firebase cache
 .firebase/
 .history/
+.claude
+
 # Firebase config
 *.zip
 # Uncomment this if you'd like others to create their own Firebase project.
