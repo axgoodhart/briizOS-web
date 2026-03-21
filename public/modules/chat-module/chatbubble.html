@@ -5,30 +5,9 @@
 <head>
   <meta charset="UTF-8">
   
-
-    <link rel="apple-touch-icon" type="image/png" href="https://cpwebassets.codepen.io/assets/favicon/apple-touch-icon-5ae1a0698dcc2402e9712f7d01ed509a57814f994c660df9f7a952f3060705ee.png" />
-
-    <meta name="apple-mobile-web-app-title" content="CodePen">
-
-    <link rel="icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico" />
-
-    <link rel="mask-icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/logo-pin-b4b4269c16397ad2f0f7a01bcdf513a1994f4c94b8af2f191c09eb0d601762b1.svg" color="#111" />
-
-
-
-  
-    <script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-2c7831bb44f98c1391d6a4ffda0e1fd302503391ca806e7fcc7b9b87197aec26.js"></script>
-
-
-  <title>Imagica - AI prompt UI</title>
-
-    <link rel="canonical" href="https://codepen.io/onediv/pen/rNoqMvO">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <link rel="stylesheet" href="https://public.codepenassets.com/css/reset-2.0.min.css">
-
-  
-  
 <style>
+* {transition: all .2s ease-out;
+box-sizing: border-box;}
 :root {
   --r: 20px;
   --c: #ffffff;
@@ -44,7 +23,17 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100svh;
-  background:linear-gradient(20deg, black, darkgreen)
+  animation:huerotate 41s linear infinite;
+background:    linear-gradient(20deg, white,darkgray,pink,skyblue,gray, gold)
+}
+
+@keyframes huerotate {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
 }
 
 .form {
@@ -53,7 +42,8 @@ body {
   max-width: 50rem;
   flex: 1 1 auto;
   height: var(--hh);
-  transition: 250ms ease all;
+  font-family:"Xiomara", cursive !important;
+
 }
 .form.open {
   height: calc(var(--hh) * 1.5 + var(--gap));
@@ -70,15 +60,24 @@ input {
   border: none;
   background: none;
   width: 100%;
-  height: 4rem;
-  padding: 0 2rem;
+  height: 2rem;
   color: var(--c);
+  height:40px !important;
 }
 input:focus {
   outline: none;
 }
+
+
+#heading {border: .5px solid palegoldenrod !important;  font-family:Xiomara !important;font-size:24px;   border-radius: 20px !important;;
+}
+#input > input[type=text], #input.glass {background:linear-gradient(120deg, rgba(135, 207, 235, 0.07),rgba(0, 255, 0, 0.09));backdrop-filter:saturate(20) blur(10px);
+  font-family:"Moubaru", sans-serif !important;}
+
 input::placeholder {
-  opacity: 0.3;
+  opacity: 0.6;
+  color:white;
+  text-shadow:1px 1px 2.2px deeppink;
 }
 
 @keyframes text {
@@ -91,9 +90,21 @@ input::placeholder {
 }
 .form-title {
   clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
-  animation: text linear 1s forwards;
-  animarion-delay: 1s;
+  animation: text linear 2s forwards;
+  text-align:center;
 }
+.form-title span {
+  animation: text2 linear 3.5s forwards;
+}
+@keyframes text2 {
+  0%,80% {color:transparent;clip-path: polygon(0 0, 0 0, 0 0%, 0 0%)}
+  90%{  color:blue;  clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  }
+  100% {
+color:white;    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);letter-spacing:0;
+  }
+}
+
 
 @keyframes gradient {
   0% {
@@ -216,8 +227,8 @@ input::placeholder {
   content: "";
   position: absolute;
   inset: 0;
-  background: url(https://cdn.discordapp.com/attachments/1050016262035619861/1159132066592591893/ia.png?ex=651ec55c&is=651d73dc&hm=162828e7743ded23e27d4fe81ee09e4df9f283e32a32bc322b99c116a4f307b7) center/90% 90% no-repeat;
-}
+  border-radius:1000px; overflow:hidden;
+background:radial-gradient(circle at bottom right, yellow, pink, turquoise, white);}
 
 .form-close-button {
   position: absolute;
@@ -234,7 +245,6 @@ input::placeholder {
   cursor: pointer;
   visibility: hidden;
   opacity: 0;
-  transition: 250ms ease opacity;
 }
 .open .form-close-button {
   visibility: visible;
@@ -242,12 +252,11 @@ input::placeholder {
 }
 
 [id=heading] {
-  transition: 250ms ease all;
   cursor: pointer;
 }
 .form:not(.open) [id=heading]:hover {
-  scale: 0.99;
-  filter: brightness(0.95);
+  scale: 1.1;
+  filter: brightness(1.15);
 }
 .form:not(.open) [id=heading]:active {
   scale: 0.98;
@@ -260,16 +269,24 @@ input::placeholder {
   left: 0;
   z-index: -1;
   height: var(--hh);
-  transition: 500ms ease all;
   translate: 0 0;
   opacity: 0;
 }
-.open [id=input] {
+.open [id=input], .open [id=input] .input.glass {
   translate: 0 calc(var(--hh) + var(--gap));
-  height: calc(var(--hh) / 2);
   opacity: 1;
   z-index: 2;
+overflow:hidden;    background: linear-gradient(120deg, rgba(135, 207, 235, 0.3), rgba(0, 255, 0, 0.3));
+    font-family: "Moubaru", sans-serif !important;
+    padding: 0 !important;
+    height: 28px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0px !important;
+    text-align: center;
+    padding-left: 15px !important;
 }
+
 </style>
 
   <script>
@@ -286,7 +303,7 @@ input::placeholder {
   <div id="heading" class="glass glass--gradient glass--heading">
     
     <span class="form-header">
-      <span class="form-icon"></span><span class="form-title">What would you like to build today?</span> </span>
+      <span class="form-icon"></span><span class="form-title">Love yourself, love your life. <br> <span class="right">––Brockdock </span> </span>
     <button class="form-close-button">✕</button>
   </div>
   <div id="input" class="glass">
