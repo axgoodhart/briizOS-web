@@ -64,17 +64,14 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+*.history
+*.vscode
+*.archive
+public/assets/
 
-# *.history
+ *.IGNOREME
 
-# *.vscode
-
-# *.archive
-
-
-# *.IGNOREME
-
-# *.logo.psd
+ *.logo.psd
 
 # Auto Claude data directory
 .auto-claude/
