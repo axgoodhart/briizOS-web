@@ -14,8 +14,9 @@
         background-color: #000000;
         height:100vh;
         transform-style:preserve-3d;
-        mix-blend-mode:multiply;
-        perspective:400px;
+        mix-blend-mode:luminosity;
+        perspective:1000px;
+        filter:brightness(.51);
 box-shadow: 0 0 20px white, inset 0 0 60px teal, 0 0 200px blue, inset 0 0 80px purple;    }
   
 
@@ -23,7 +24,7 @@ box-shadow: 0 0 20px white, inset 0 0 60px teal, 0 0 200px blue, inset 0 0 80px 
 canvas {
         display: block;
         transform-style:preserve-3d;
-        transform:scaleY(2);
+        transform:scale(2);
     }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
@@ -37,12 +38,12 @@ canvas {
         translate(width / 2, height / 2);
         
         noFill();
-        stroke(255, 10);
-        strokeWeight(.6);
+        stroke(0,50,40);
+        strokeWeight(1);
 
-        const time = frameCount * 0.01;
-        const numLines = 3; 
-        const numPoints = 80 
+        const time = frameCount * 0.008;
+        const numLines = 13; 
+        const numPoints = 100 
 
         for (let i = 0; i < numLines; i++) {
             const linePhase = (i / numLines) * TWO_PI; 
@@ -55,9 +56,9 @@ canvas {
 
                 const envelope = sin(pointPhase * PI);
                 const wave1 = sin(time + linePhase) / 60;
-                const wave2 = sin(pointPhase * 8 + time * 2) * 40 * Math.sin(time);
-                const centerComplexity = pow(cos(pointPhase * PI - HALF_PI), 2) * 1100;
-                const wave3 = cos(linePhase * 4 - time) * centerComplexity;
+                const wave2 = sin(pointPhase * 8 + time * 2) * 410 * Math.sin(time);
+                const centerComplexity = pow(cos(pointPhase * PI - HALF_PI), 2) * .10;
+                const wave3 = cos(linePhase / 4 *  time) * centerComplexity;
                 const x = envelope * (wave1 + wave2 + wave3 + 60);
 
                 vertex(-x, y); 
