@@ -3948,20 +3948,33 @@ const SyncAdapters = (() => {
       if (x !== undefined || y !== undefined || w !== undefined || h !== undefined) {
         if (!d.ui) d.ui = {};
         if (!d.ui.web) d.ui.web = {};
+        const existingXywh = d.ui.web.xywh || {};
         d.ui.web.xywh = {
-          x: Number(x) || 0,
-          y: Number(y) || 0,
-          w: Number.isFinite(Number(w)) && Number(w) > 0 ? Number(w) : 300,
-          h: Number.isFinite(Number(h)) && Number(h) > 0 ? Number(h) : undefined,
+          x: x !== undefined ? (Number(x) || 0) : (Number(existingXywh.x) || 0),
+          y: y !== undefined ? (Number(y) || 0) : (Number(existingXywh.y) || 0),
+          w: Number.isFinite(Number(w)) && Number(w) > 0
+            ? Number(w)
+            : (Number.isFinite(Number(existingXywh.w)) && Number(existingXywh.w) > 0 ? Number(existingXywh.w) : 300),
+          h: Number.isFinite(Number(h)) && Number(h) > 0
+            ? Number(h)
+            : (Number.isFinite(Number(existingXywh.h)) && Number(existingXywh.h) > 0 ? Number(existingXywh.h) : 360),
         };
-        // Clean undefined from xywh
-        if (d.ui.web.xywh.h === undefined) delete d.ui.web.xywh.h;
+      }
+      if (isNew) {
+        if (!d.ui) d.ui = {};
+        if (!d.ui.web) d.ui.web = { xywh: { x: 0, y: 0, w: 300, h: 360 } };
+        const webXywh = d.ui.web.xywh || { x: 0, y: 0, w: 300, h: 360 };
+        if (!d.ui.local) d.ui.local = { xywh: { ...webXywh } };
       }
       // Remove flat position fields — prohibited by contract §9
       delete d.x; delete d.y; delete d.w; delete d.h;
-      if (d.body === undefined) d.body = '';
-      if (d.customColor === undefined) d.customColor = null;
-      requireFields(d, ['id','type','title','createdAt'], 'noteAdapter');
+      if (isNew) {
+        if (d.body === undefined) d.body = '';
+        if (d.customColor === undefined) d.customColor = null;
+        requireFields(d, ['id','type','title','body','createdAt'], 'noteAdapter');
+      } else {
+        requireFields(d, ['id'], 'noteAdapter');
+      }
       return d;
     },
   };
@@ -4183,7 +4196,11 @@ form.style.display = authed ? "none" : "block";}
       const clean = {};
       Object.keys(patch).forEach(k=>{ const v = patch[k]; if (typeof v !== 'undefined') clean[k]=v; });
       if (Object.keys(clean).length === 0) continue;
-      persistence.queueFirebaseSave('panels', id, clean);
+      const safe = persistence?.sanitizePanelPatchForSave
+        ? persistence.sanitizePanelPatchForSave(id, clean)
+        : clean;
+      if (Object.keys(safe).length === 0) continue;
+      persistence.queueFirebaseSave('panels', id, safe);
       keyToId.set(`panels/${id}`, id);
     }
     // Attempt per-key commit and track success
@@ -4248,10 +4265,10 @@ form.style.display = authed ? "none" : "block";}
 
     // Create a Firestore-safe copy of a panel (plain JSON, supported types only)
     // Uses noteAdapter.prepareForWrite for contract compliance (ui.web.xywh, body)
-    sanitizePanelForSave(panel) {
+    sanitizePanelForSave(panel, options = {}) {
       const pid = String(panel?.id ?? '');
       const now = Date.now();
-      const isNew = !panel?._existsInFirestore;
+      const isNew = options.isNew ?? (panel?._existsInFirestore === false);
       const safe = {
         id: pid,
         type: panel?.type || 'note',
@@ -4292,6 +4309,28 @@ form.style.display = authed ? "none" : "block";}
       return SyncAdapters.noteAdapter.prepareForWrite(safe, isNew);
     }
 
+    sanitizePanelPatchForSave(panelId, patch) {
+      const id = String(panelId);
+      const clean = {};
+      Object.keys(patch || {}).forEach(k => {
+        const v = patch[k];
+        if (typeof v !== 'undefined') clean[k] = v;
+      });
+      const panel = (this.state.panels || []).find(p => String(p.id) === id);
+      const isNotePanel = panel?.type === 'note' || clean.type === 'note';
+      if (!isNotePanel) return clean;
+
+      const payload = { id, type: 'note', ...clean };
+      const hasXywhPatch = ['x', 'y', 'w', 'h'].some(k => clean[k] !== undefined);
+      if (hasXywhPatch && panel) {
+        if (payload.x === undefined && panel.x !== undefined) payload.x = panel.x;
+        if (payload.y === undefined && panel.y !== undefined) payload.y = panel.y;
+        if (payload.w === undefined && panel.w !== undefined) payload.w = panel.w;
+        if (payload.h === undefined && panel.h !== undefined) payload.h = panel.h;
+      }
+      return SyncAdapters.noteAdapter.prepareForWrite(payload, false);
+    }
+
     async savePanel(panel, options = {}) {
       if (options.waitForAnimation) {
         await this.waitForAnimation(`panel-${panel.id}`, options.animationDuration || 300);
@@ -4305,6 +4344,7 @@ form.style.display = authed ? "none" : "block";}
       const pid = String(panel.id);
       const idx = (this.state.panels||[]).findIndex(p => String(p.id) === pid);
       const now = Date.now();
+      const isNewForWrite = panel._existsInFirestore === false;
       if (idx >= 0) {
         Object.assign(this.state.panels[idx], { ...panel, id: pid, updatedAt: now, createdAt: this.state.panels[idx].createdAt || panel.createdAt || now });
       } else {
@@ -4312,8 +4352,11 @@ form.style.display = authed ? "none" : "block";}
         this.state.panels.push(target);
       }
       console.log('[persist] upsert panel', { id: pid, contentLen: (panel?.content||'').length });
+      panel._existsInFirestore = true;
+      const storedPanel = (this.state.panels || []).find(p => String(p.id) === pid);
+      if (storedPanel) storedPanel._existsInFirestore = true;
       this.saveLocal();
-      const safe = this.sanitizePanelForSave(panel);
+      const safe = this.sanitizePanelForSave(panel, { isNew: isNewForWrite });
       this.queueFirebaseSave('panels', pid, safe);
     }
 
@@ -4453,7 +4496,7 @@ form.style.display = authed ? "none" : "block";}
           if (data.type === 'note') {
             const n = SyncAdapters.noteAdapter.normalizeOnRead(id, data);
             // Map canonical 'body' back to 'content' for internal UI use
-            return { ...data, ...n, content: n.body };
+            return { ...data, ...n, content: n.body, _existsInFirestore: true };
           }
           return { ...data, id: String(id) };
         },
@@ -4968,7 +5011,8 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         autoHeight: true,
         // jobPanel fields
         jobMessage: options?.jobMessage || null,
-        taskId: options?.taskId || null
+        taskId: options?.taskId || null,
+        _existsInFirestore: false
       };
 
       const panelElement = this.createPanelElement(panel);
