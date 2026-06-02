@@ -3768,12 +3768,13 @@ bottom:0px}
 <script type="module">
   
   const DEBUG = false; if (!DEBUG) console.debug = () => {};
-import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+	import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import {
   getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
   setPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+	import { getFirestore, doc, setDoc, getDoc, serverTimestamp, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+	import { readBriizSyncState, prepareBriizSyncWrite } from "./briizSyncCore.js";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -4183,22 +4184,51 @@ form.style.display = authed ? "none" : "block";}
     if (pendingCommitTimer) return;
     pendingCommitTimer = setTimeout(()=>{ pendingCommitTimer=null; commitPendingChanges(); }, ms);
   }
-  async function commitPendingChanges(opts={}){
-    const onlyId = opts.onlyId ? String(opts.onlyId) : null;
-    const pend = readPending();
-    const ids = Object.keys(pend.panels||{}).filter(id => !onlyId || id===onlyId);
+	  async function commitPendingChanges(opts={}){
+	    const onlyId = opts.onlyId ? String(opts.onlyId) : null;
+	    const pend = readPending();
+	    const ids = Object.keys(pend.panels||{}).filter(id => !onlyId || id===onlyId);
     if (!ids.length) return;
     console.log('[commit-start]', { count: ids.length });
     const keyToId = new Map();
-    for (const id of ids){
-      const patch = pend.panels[id]?.patch || {};
-      // sanitize partial patch: drop undefined
-      const clean = {};
-      Object.keys(patch).forEach(k=>{ const v = patch[k]; if (typeof v !== 'undefined') clean[k]=v; });
-      if (Object.keys(clean).length === 0) continue;
-      const safe = persistence?.sanitizePanelPatchForSave
-        ? persistence.sanitizePanelPatchForSave(id, clean)
-        : clean;
+	    for (const id of ids){
+	      const patch = pend.panels[id]?.patch || {};
+	      // sanitize partial patch: drop undefined
+	      const clean = {};
+	      Object.keys(patch).forEach(k=>{ const v = patch[k]; if (typeof v !== 'undefined') clean[k]=v; });
+	      if (Object.keys(clean).length === 0) continue;
+	      const panel = (state.panels || []).find(p => String(p.id) === String(id));
+	      const orgId = panel?.orgId || clean.orgId || null;
+	      const organizerPatch = {};
+	      if (clean.content !== undefined) organizerPatch.body = clean.content;
+	      if (clean.body !== undefined) organizerPatch.body = clean.body;
+	      if (clean.title !== undefined) organizerPatch.title = clean.title;
+	      if (clean.customColor !== undefined) organizerPatch.customColor = clean.customColor;
+	      if (clean.tags !== undefined) organizerPatch.tags = clean.tags;
+	      if (orgId && Object.keys(organizerPatch).length && prepareBriizSyncWrite) {
+	        const ops = prepareBriizSyncWrite({
+	          uid: persistence.uid,
+	          entity: 'note',
+	          action: 'update',
+	          itemId: String(orgId),
+	          data: organizerPatch,
+	          serverTimestamp,
+	        });
+	        ops.filter(op => op.kind === 'set').forEach(op => {
+	          const parts = op.path.split('/');
+	          persistence.queueFirebaseSave(parts[2], parts[3], op.data);
+	          keyToId.set(`${parts[2]}/${parts[3]}`, id);
+	        });
+	      }
+	      delete clean.content;
+	      delete clean.body;
+	      delete clean.title;
+	      delete clean.customColor;
+	      delete clean.tags;
+	      if (Object.keys(clean).length === 0) continue;
+	      const safe = persistence?.sanitizePanelPatchForSave
+	        ? persistence.sanitizePanelPatchForSave(id, clean)
+	        : clean;
       if (Object.keys(safe).length === 0) continue;
       persistence.queueFirebaseSave('panels', id, safe);
       keyToId.set(`panels/${id}`, id);
@@ -4263,9 +4293,24 @@ form.style.display = authed ? "none" : "block";}
       if (!USE_LOCAL_CACHE) return; try { localStorage.setItem(LS_KEY, JSON.stringify(this.state)); } catch {}
     }
 
-    // Create a Firestore-safe copy of a panel (plain JSON, supported types only)
-    // Uses noteAdapter.prepareForWrite for contract compliance (ui.web.xywh, body)
+    // Create a Firestore-safe copy of a panel. Note panels use the canonical
+    // panel-state writer; note body/title stay on organizer docs.
     sanitizePanelForSave(panel, options = {}) {
+      if (panel?.type === 'note' && prepareBriizSyncWrite) {
+        const op = prepareBriizSyncWrite({
+          uid: this.uid,
+          entity: 'panel',
+          action: 'update',
+          platform: 'web',
+          itemId: panel.orgId,
+          panelId: panel.id,
+          panelType: 'note',
+          data: panel,
+          now: Number(panel?.createdAt) || Date.now(),
+          serverTimestamp,
+        })[0];
+        return op.data;
+      }
       const pid = String(panel?.id ?? '');
       const now = Date.now();
       const isNew = options.isNew ?? (panel?._existsInFirestore === false);
@@ -4316,19 +4361,24 @@ form.style.display = authed ? "none" : "block";}
         const v = patch[k];
         if (typeof v !== 'undefined') clean[k] = v;
       });
-      const panel = (this.state.panels || []).find(p => String(p.id) === id);
-      const isNotePanel = panel?.type === 'note' || clean.type === 'note';
-      if (!isNotePanel) return clean;
+	      const panel = (this.state.panels || []).find(p => String(p.id) === id);
+	      const isNotePanel = panel?.type === 'note' || clean.type === 'note';
+	      if (!isNotePanel) return clean;
+	      if (!panel?.orgId && !clean.orgId) return {};
 
-      const payload = { id, type: 'note', ...clean };
-      const hasXywhPatch = ['x', 'y', 'w', 'h'].some(k => clean[k] !== undefined);
-      if (hasXywhPatch && panel) {
-        if (payload.x === undefined && panel.x !== undefined) payload.x = panel.x;
-        if (payload.y === undefined && panel.y !== undefined) payload.y = panel.y;
-        if (payload.w === undefined && panel.w !== undefined) payload.w = panel.w;
-        if (payload.h === undefined && panel.h !== undefined) payload.h = panel.h;
-      }
-      return SyncAdapters.noteAdapter.prepareForWrite(payload, false);
+	      const payload = { ...(panel || {}), ...clean, id, type: 'note', orgId: panel?.orgId || clean.orgId };
+	      const op = prepareBriizSyncWrite({
+	        uid: this.uid,
+	        entity: 'panel',
+	        action: 'update',
+	        platform: 'web',
+	        itemId: payload.orgId,
+	        panelId: id,
+	        panelType: 'note',
+	        data: payload,
+	        serverTimestamp,
+	      })[0];
+	      return op.data;
     }
 
     async savePanel(panel, options = {}) {
@@ -4336,12 +4386,16 @@ form.style.display = authed ? "none" : "block";}
         await this.waitForAnimation(`panel-${panel.id}`, options.animationDuration || 300);
       }
       // ensure external fields exist
-      if (panel.type === 'external') {
-        panel.externalUrl = panel.externalUrl || '';
-        panel.externalShowUrl = !!panel.externalShowUrl;
-        panel.externalData = panel.externalData || null;
-      }
-      const pid = String(panel.id);
+	      if (panel.type === 'external') {
+	        panel.externalUrl = panel.externalUrl || '';
+	        panel.externalShowUrl = !!panel.externalShowUrl;
+	        panel.externalData = panel.externalData || null;
+	      }
+	      if (panel.type !== 'jobPanel' && !panel.orgId) {
+	        console.warn('[persist] blocked panel save without organizer link', { id: String(panel.id), type: panel.type });
+	        return;
+	      }
+	      const pid = String(panel.id);
       const idx = (this.state.panels||[]).findIndex(p => String(p.id) === pid);
       const now = Date.now();
       const isNewForWrite = panel._existsInFirestore === false;
@@ -4411,6 +4465,17 @@ form.style.display = authed ? "none" : "block";}
       this.queueFirebaseSave('events', String(event.id), payload);
     }
 
+    queueSyncOps(ops) {
+      for (const op of ops || []) {
+        const parts = String(op.path || '').split('/');
+        const collectionName = parts[2];
+        const docId = parts[3];
+        if (!collectionName || !docId) continue;
+        if (op.kind === 'delete') this.queueFirebaseDelete(collectionName, docId);
+        else this.queueFirebaseSave(collectionName, docId, op.data);
+      }
+    }
+
     saveOrganizerItem(item) {
       const now = Date.now();
       const idx = (this.state.organizer||[]).findIndex(i => i.id === item.id);
@@ -4418,14 +4483,29 @@ form.style.display = authed ? "none" : "block";}
       if (idx >= 0) this.state.organizer[idx] = { ...item, updatedAt: now };
       else this.state.organizer.push({ ...item, createdAt: now, updatedAt: now });
       this.saveLocal();
-      const payload = SyncAdapters.organizerAdapter.prepareForWrite({ ...item, createdAt: item.createdAt || now }, isNew);
-      this.queueFirebaseSave('organizer', String(item.id), payload);
+      const ops = prepareBriizSyncWrite({
+        uid: this.uid,
+        entity: 'organizer',
+        action: isNew ? 'create' : 'update',
+        itemId: String(item.id),
+        data: { ...item, createdAt: item.createdAt || now },
+        serverTimestamp,
+      });
+      this.queueSyncOps(ops);
     }
 
     deleteOrganizerItem(itemId) {
-      this.state.organizer = (this.state.organizer||[]).filter(i => i.id !== itemId);
+      const removed = (this.state.organizer||[]).find(i => String(i.id) === String(itemId));
+      this.state.organizer = (this.state.organizer||[]).filter(i => String(i.id) !== String(itemId));
       this.saveLocal();
-      this.queueFirebaseDelete('organizer', String(itemId));
+      const ops = prepareBriizSyncWrite({
+        uid: this.uid,
+        entity: removed?.type === 'note' ? 'note' : 'organizer',
+        action: 'delete',
+        itemId: String(itemId),
+        panelId: removed?.panelId || null,
+      });
+      this.queueSyncOps(ops);
     }
 
     queueFirebaseSave(collectionName, docId, data) {
@@ -4592,6 +4672,12 @@ form.style.display = authed ? "none" : "block";}
         const oldDoc = await getDoc(doc(this.db, `users/${this.uid}/snapshots/app`));
         if (!oldDoc.exists()) return;
         const old = oldDoc.data();
+        const oldOrganizer = Array.isArray(old.organizer) ? old.organizer : [];
+        const organizerByPanelId = new Map();
+        const migratedNoteItemIds = new Set();
+        for (const item of oldOrganizer) {
+          if (item?.panelId) organizerByPanelId.set(String(item.panelId), item);
+        }
         // migrate panels
         if (Array.isArray(old.panels)) {
           for (const p of old.panels) {
@@ -4600,7 +4686,37 @@ form.style.display = authed ? "none" : "block";}
               p.externalShowUrl = !!p.externalShowUrl;
               p.externalData = p.externalData || null;
             }
-            await setDoc(doc(this.db, `users/${this.uid}/panels/${String(p.id)}`), { ...p, updatedAt: serverTimestamp() }, { merge: true });
+            if (p?.type === 'note') {
+              const existingItem = organizerByPanelId.get(String(p.id));
+              const itemId = String(p.orgId || existingItem?.id || `itm_migrated_${String(p.id)}`);
+              migratedNoteItemIds.add(itemId);
+              const ops = prepareBriizSyncWrite({
+                uid: this.uid,
+                entity: 'note',
+                action: 'create',
+                platform: 'web',
+                itemId,
+                panelId: String(p.id),
+                panelType: 'note',
+                data: {
+                  ...existingItem,
+                  ...p,
+                  id: itemId,
+                  title: existingItem?.title || existingItem?.name || p.title || 'Untitled note',
+                  body: existingItem?.body || existingItem?.content || p.body || p.content || '',
+                  orgId: itemId,
+                  panelId: String(p.id),
+                  source: existingItem?.source || { mode: 'migration' },
+                },
+                serverTimestamp,
+              });
+              for (const op of ops) {
+                if (op.kind === 'delete') await deleteDoc(doc(this.db, op.path));
+                else await setDoc(doc(this.db, op.path), op.data, op.options || { merge: true });
+              }
+            } else {
+              await setDoc(doc(this.db, `users/${this.uid}/panels/${String(p.id)}`), { ...p, updatedAt: serverTimestamp() }, { merge: true });
+            }
           }
         }
         if (Array.isArray(old.tasks)) {
@@ -4616,6 +4732,7 @@ form.style.display = authed ? "none" : "block";}
         // organizer items
         if (Array.isArray(old.organizer)) {
           for (const it of old.organizer) {
+            if (it?.type === 'note' && (it?.panelId || migratedNoteItemIds.has(String(it.id)))) continue;
             await setDoc(doc(this.db, `users/${this.uid}/organizer/${String(it.id)}`), { ...it, updatedAt: serverTimestamp() }, { merge: true });
           }
         }
@@ -4675,9 +4792,12 @@ form.style.display = authed ? "none" : "block";}
           window.calendarManager.events = Array.isArray(data) ? data : [];
         }
         break;
-      case 'organizer':
-        // Organizer UI refresh is driven by explicit actions; state is updated already.
-        break;
+	      case 'organizer':
+	        if (window.panelManager) {
+	          overlayPendingIntoState();
+	          window.panelManager.refreshFromState?.();
+	        }
+	        break;
     }
   });
 
@@ -4935,6 +5055,7 @@ onAuthStateChanged(auth, async user=>{
     async createPanel(type, title = '', options = { source: 'api' }) {
       // Delegate to existing implementation
       const created = await this.createNewPanel(type, title, options);
+      if (created) return created;
       // createNewPanel mutates state; ensure we can return the panel object
       try {
         const panel = this.panels.find(p => (p.title || '') === (title || '') && p.type === type) || null;
@@ -4944,13 +5065,32 @@ onAuthStateChanged(auth, async user=>{
       }
     }
 
-    refreshFromState() {
-      if (this._isDraggingAny) return;
-      this.panelIdCounter = this.panels.reduce((max, panel) => Math.max(max, panel?.id || 0), 0);
-      this.renderPanels();       
-    }
+	    refreshFromState() {
+	      if (this._isDraggingAny) return;
+	      this.panelIdCounter = this.panels.reduce((max, panel) => Math.max(max, panel?.id || 0), 0);
+	      this.renderPanels();       
+	    }
 
-    setupEventListeners() {
+	    getSyncView() {
+	      if (!readBriizSyncState) {
+	        return { renderablePanels: [], notes: [], orphanPanels: [] };
+	      }
+	      const view = readBriizSyncState({
+	        platform: 'web',
+	        organizerDocs: state.organizer || [],
+	        panelDocs: state.panels || [],
+	      });
+	      state.renderablePanels = view.renderablePanels;
+	      state.notes = view.notes;
+	      state.orphanPanels = view.orphanPanels;
+	      return view;
+	    }
+
+	    getRenderablePanels() {
+	      return this.getSyncView().renderablePanels || [];
+	    }
+
+	    setupEventListeners() {
       document.getElementById('addPanelBtn').addEventListener('click', (e) => {
         e.preventDefault();
         openOrganizer();
@@ -4994,7 +5134,7 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         id: String(++this.panelIdCounter),
         type: type,
         title: title || '',
-        content: '',
+        content: options?.content || options?.body || '',
         tags: Array.isArray(options?.initialTags) ? [...options.initialTags] : [],
         orgId: options?.organizerItemId || null,
         active: true,
@@ -5026,12 +5166,11 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
         // Apply saved color immediately on first render
         if (panel.customColor) {
           try { this.applyPanelColor(panelElement, panel); } catch {}
-        }
-        this.updatePanelTitle(panelElement, title);
-        try { await persistence.savePanel(panel); if (panel.type === 'external') { await persistence.flushAll(2000); } } catch {}
-        this.makeDraggable(panelElement);
-        this.makeResizable(panelElement, panel);
-        this.attachEditDrawer(panelElement, panel);
+	        }
+	        this.updatePanelTitle(panelElement, title);
+	        this.makeDraggable(panelElement);
+	        this.makeResizable(panelElement, panel);
+	        this.attachEditDrawer(panelElement, panel);
         // Hook hover styling for custom color
         try { this.attachColorHoverHandlers(panelElement, panel); } catch {}
         this.applyWorldFilter();
@@ -5044,6 +5183,7 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
               const todayStr = yyyyMMdd(new Date());
               const item = OrganizerStore.create({
                 name: title,
+                body: panel.content || '',
                 type: panel.type,
                 scheduledDate: todayStr,
                 tag,
@@ -5058,14 +5198,16 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
               const modal = document.getElementById('organizer-modal');
               if (modal?.classList.contains('show')) { renderOrganizerList?.(); }
             } catch {}
-          } else if (panel.orgId) {
-            const it = OrganizerStore.items?.find(i=>i.id===panel.orgId);
-            if (it) { it.panelId = panel.id; OrganizerStore.save?.(); }
-          }
+	          } else if (panel.orgId) {
+	            const it = OrganizerStore.items?.find(i=>i.id===panel.orgId);
+	            if (it) { it.panelId = panel.id; OrganizerStore.save?.(); }
+	          }
+	        try { await persistence.savePanel(panel); if (panel.type === 'external') { await persistence.flushAll(2000); } } catch {}
       } else {
         // Show title input
         this.showTitleInput(panelElement, panel);
       }
+      return panel;
     }
 
     showTitleInput(panelElement, panel) {
@@ -5095,13 +5237,12 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
           panel.h = panelElement.offsetHeight;
           panel.title = title;
           
-          this.panels.push(panel);
-          this.updatePanelTitle(panelElement, title);
-          this.initializePanelContent(panelElement, panel);
-          try { await persistence.savePanel(panel); if (panel.type === 'external') { await persistence.flushAll(2000); } } catch {}
-          this.makeDraggable(panelElement);
-          this.makeResizable(panelElement, panel);
-          this.attachEditDrawer(panelElement, panel);
+	          this.panels.push(panel);
+	          this.updatePanelTitle(panelElement, title);
+	          this.initializePanelContent(panelElement, panel);
+	          this.makeDraggable(panelElement);
+	          this.makeResizable(panelElement, panel);
+	          this.attachEditDrawer(panelElement, panel);
           this.applyWorldFilter();
           // log to organizer
           try {
@@ -5110,6 +5251,7 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
             const todayStr = yyyyMMdd(new Date());
             const item = OrganizerStore.create({
               name: title,
+              body: panel.content || '',
               type: panel.type,
               scheduledDate: todayStr,
               tag,
@@ -5121,10 +5263,11 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
             });
             this.linkPanelToItem(panel, item);
             OrganizerStore.save?.();
-            const modal = document.getElementById('organizer-modal');
-            if (modal?.classList.contains('show')) { renderOrganizerList?.(); }
-          } catch {}
-        } else {
+	            const modal = document.getElementById('organizer-modal');
+	            if (modal?.classList.contains('show')) { renderOrganizerList?.(); }
+	          } catch {}
+	          try { await persistence.savePanel(panel); if (panel.type === 'external') { await persistence.flushAll(2000); } } catch {}
+	        } else {
           panelElement.remove();
         }
         titleInput.remove();
@@ -5743,11 +5886,11 @@ async createNewPanel(type = 'note', title = null, options = { source: 'ui' }) {
 
       const id = String(panelElement.dataset.panelId);
       const p = this.panels.find(x => String(x.id) === id);
-      if (p) {
-        p.title = title;
-        this.touchPanel(p);
-        this.savePanelsToStorage();
-      }
+	      if (p) {
+	        p.title = title;
+	        this.touchPanel(p);
+	        if (p._existsInFirestore !== false && p.orgId) this.savePanelsToStorage();
+	      }
     }
 
     enterEditMode(panelElement) {
@@ -6437,7 +6580,7 @@ renderPanels() {
   );
   const keep = new Set();
 
-  this.panels.forEach(panel => {
+	  this.getRenderablePanels().forEach(panel => {
     if (panel.active === false) return;
     const key = String(panel.id);
     keep.add(key);
@@ -6537,10 +6680,12 @@ renderPanels() {
 
   this.applyWorldFilter();
 }
-    // Organizer integrations
-    getPanelByItemId(itemId) {
-      return this.panels.find(p => p.orgId === itemId) || null;
-    }
+	    // Organizer integrations
+	    getPanelByItemId(itemId) {
+	      return this.getRenderablePanels().find(p => p.orgId === itemId)
+	        || this.panels.find(p => p.orgId === itemId)
+	        || null;
+	    }
     hasPanelForItem(itemId) {
       const p = this.getPanelByItemId(itemId);
       if (!p) return false;
@@ -6597,18 +6742,27 @@ renderPanels() {
   }
 
   // Global color shim for external/SDK callers
-  if (!window.applyPanelColor) {
-    window.applyPanelColor = function(panelId, h, s, l) {
-      try {
-        const pm = window.panelManager;
-        if (!pm) return;
-        const panel = pm.panels.find(p => String(p.id) === String(panelId));
-        if (!panel) return;
-        panel.customColor = { h: Number(h)||0, s: Number(s)||0, l: Number(l)||0 };
-        const el = document.getElementById(`panel-${panel.id}`);
-        if (el && typeof pm.applyPanelColor === 'function') {
-          pm.applyPanelColor(el, panel);
-        }
+	    if (!window.applyPanelColor) {
+	    window.applyPanelColor = function(panelId, h, s, l) {
+	      try {
+	        const pm = window.panelManager;
+	        if (!pm) return;
+	        const panel = pm.panels.find(p => String(p.id) === String(panelId));
+	        if (!panel) return;
+	        panel.customColor = { h: Number(h)||0, s: Number(s)||0, l: Number(l)||0 };
+	        if (panel.type === 'note' && panel.orgId && window.OrganizerStore) {
+	          const item = (window.OrganizerStore.items || []).find(it => String(it.id) === String(panel.orgId));
+	          if (item) {
+	            item.customColor = panel.customColor;
+	            item.updatedAt = Date.now();
+	            item.lastModified = item.updatedAt;
+	            window.OrganizerStore.save?.();
+	          }
+	        }
+	        const el = document.getElementById(`panel-${panel.id}`);
+	        if (el && typeof pm.applyPanelColor === 'function') {
+	          pm.applyPanelColor(el, panel);
+	        }
       } catch {}
     };
   }
@@ -8010,7 +8164,7 @@ updateTime() {
         pm.savePanelsToStorage();
       }
     },
-    create({ name, type='task', scheduledDate=null, due=null, tag=null, chat=null, external=null, dateMode=null, dateValue=null, source=null, reminderEventId=null, panelType=null, panelId=null, recurrence=null, syncSource='briizos', macosEventIdentifier=null, macosCalendarIdentifier=null, timeStart=null, duration=null }) {
+    create({ name, body='', type='task', scheduledDate=null, due=null, tag=null, chat=null, external=null, dateMode=null, dateValue=null, source=null, reminderEventId=null, panelType=null, panelId=null, recurrence=null, syncSource='briizos', macosEventIdentifier=null, macosCalendarIdentifier=null, timeStart=null, duration=null }) {
       const now = Date.now();
       const fallbackDate = dateValue || scheduledDate || due || yyyyMMdd(new Date(now));
       const resolvedMode = dateMode || (type === 'event' ? 'event' : 'created');
@@ -8023,7 +8177,7 @@ updateTime() {
 
       const item = {
         id: 'itm_' + now + '_' + Math.random().toString(36).slice(2,7),
-        type, title: name || '(untitled)', name: name || '(untitled)', body: '',
+        type, title: name || '(untitled)', name: name || '(untitled)', body: body || '',
         createdAt: now, updatedAt: now,
         scheduledDate, start: timeStart, end: endTime, due, duration: duration, completedAt: null,
         status: 'todo', priority: 'auto',

@@ -14,6 +14,37 @@ class BriizOSTools {
     }
   }
 
+  getOrganizerNotes() {
+    const state = window.appState || window.state || {};
+    const organizer = Array.isArray(window.OrganizerStore?.items) && window.OrganizerStore.items.length
+      ? window.OrganizerStore.items
+      : (Array.isArray(state.notes) ? state.notes : state.organizer || []);
+
+    return (organizer || []).filter(item =>
+      item &&
+      item.type === 'note' &&
+      item.archived !== true &&
+      item.active !== false
+    );
+  }
+
+  getRenderablePanels() {
+    if (window.panelManager && typeof window.panelManager.getRenderablePanels === 'function') {
+      return window.panelManager.getRenderablePanels();
+    }
+    const state = window.appState || window.state || {};
+    return Array.isArray(state.renderablePanels) ? state.renderablePanels : [];
+  }
+
+  findRenderablePanel(panelId) {
+    const needle = String(panelId || '').toLowerCase();
+    return this.getRenderablePanels().find(panel =>
+      String(panel.id) === String(panelId) ||
+      String(panel.orgId) === String(panelId) ||
+      (panel.title || '').toLowerCase() === needle
+    ) || null;
+  }
+
   // Register all available tools
   registerAllTools() {
     // Read-only tools (Summarization)
@@ -27,7 +58,7 @@ class BriizOSTools {
 
     this.register('searchNotes', this.searchNotes, {
       requiresConfirmation: false,
-      description: 'Search through note panels',
+      description: 'Search synced organizer notes',
       parameters: {
         query: { type: 'string', description: 'Search term' },
         topic_filter: { type: 'string', description: 'Optional: Filter by note title', optional: true }
@@ -438,32 +469,35 @@ class BriizOSTools {
   // 2. Search Notes
   async searchNotes(params) {
     const { query, topic_filter } = params;
-    const state = window.appState || window.state;
-    if (!state || !state.panels) {
+    const notes = this.getOrganizerNotes();
+    if (!notes.length) {
       return { results: [], summary: 'No notes found.' };
     }
 
-    const notePanels = state.panels.filter(p => p.type === 'note' && p.active !== false);
     let matchingNotes = [];
 
-    for (const panel of notePanels) {
-      const content = (panel.content || '').toLowerCase();
-      const title = (panel.title || '').toLowerCase();
-      const searchQuery = query.toLowerCase();
+    for (const note of notes) {
+      const noteBody = note.body || note.content || note.description || '';
+      const noteTitle = note.title || note.name || 'Untitled note';
+      const content = noteBody.toLowerCase();
+      const title = noteTitle.toLowerCase();
+      const searchQuery = String(query || '').toLowerCase();
       const topicMatch = !topic_filter || title.includes(topic_filter.toLowerCase());
 
       if (topicMatch && (content.includes(searchQuery) || title.includes(searchQuery))) {
         // Find snippet
-        const contentLower = panel.content || '';
+        const contentLower = noteBody;
         const index = contentLower.toLowerCase().indexOf(searchQuery);
-        const snippetStart = Math.max(0, index - 50);
-        const snippetEnd = Math.min(contentLower.length, index + searchQuery.length + 50);
+        const matchIndex = index >= 0 ? index : 0;
+        const snippetStart = Math.max(0, matchIndex - 50);
+        const snippetEnd = Math.min(contentLower.length, matchIndex + searchQuery.length + 50);
         const snippet = contentLower.substring(snippetStart, snippetEnd);
 
         matchingNotes.push({
-          title: panel.title,
+          title: noteTitle,
           snippet: '...' + snippet + '...',
-          id: panel.id
+          id: note.id,
+          panelId: note.panelId || null
         });
       }
     }
@@ -880,12 +914,24 @@ class BriizOSTools {
       content: content || ''
     });
 
-    // If content was provided, set it
+    if (content && panel?.orgId && window.OrganizerStore) {
+      const note = (window.OrganizerStore.items || []).find(item => String(item.id) === String(panel.orgId));
+      if (note) {
+        note.body = content;
+        note.content = content;
+        note.updatedAt = Date.now();
+        note.lastModified = note.updatedAt;
+        window.OrganizerStore.save?.();
+      }
+    }
+
+    // Keep the visible textarea current; durable body storage is organizer-backed.
     if (content && panel && panel.id) {
       const state = window.appState || window.state;
       const createdPanel = state.panels.find(p => p.id === panel.id);
       if (createdPanel) {
         createdPanel.content = content;
+        createdPanel.body = content;
         window.panelManager.refreshFromState();
       }
     }
@@ -920,6 +966,9 @@ class BriizOSTools {
     if (!panel) {
       throw new Error(`Panel "${panel_id}" not found`);
     }
+    if (panel.type === 'note' && !panel.orgId) {
+      throw new Error(`Note panel "${panel.title || panel.id}" is missing its organizer link.`);
+    }
 
     // Apply color using the existing applyPanelColor function
     // This function is in index.html around line 4947
@@ -935,6 +984,15 @@ class BriizOSTools {
         panelElement.style.setProperty('--panel-h', hue);
         panelElement.style.setProperty('--panel-s', `${saturation}%`);
         panelElement.style.setProperty('--panel-l', `${lightness}%`);
+      }
+    }
+    if (panel.type === 'note' && panel.orgId && window.OrganizerStore) {
+      const note = (window.OrganizerStore.items || []).find(item => String(item.id) === String(panel.orgId));
+      if (note) {
+        note.customColor = { h: hue, s: saturation, l: lightness };
+        note.updatedAt = Date.now();
+        note.lastModified = note.updatedAt;
+        window.OrganizerStore.save?.();
       }
     }
 
@@ -954,49 +1012,59 @@ class BriizOSTools {
   async updateNoteContent(params) {
     const { panel_id, new_content, mode } = params;
 
-    const state = window.appState || window.state;
-    if (!state || !state.panels) {
-      throw new Error('Panel system not available');
+    if (!window.OrganizerStore) {
+      throw new Error('Organizer not available');
     }
 
-    // Find panel by ID or title
-    const panel = state.panels.find(p =>
-      String(p.id) === String(panel_id) ||
-      (p.title || '').toLowerCase() === panel_id.toLowerCase()
+    const needle = String(panel_id || '').toLowerCase();
+    const note = this.getOrganizerNotes().find(item =>
+      String(item.id) === String(panel_id) ||
+      String(item.panelId) === String(panel_id) ||
+      (item.title || item.name || '').toLowerCase() === needle
     );
 
-    if (!panel) {
-      throw new Error(`Panel "${panel_id}" not found`);
+    if (!note) {
+      throw new Error(`Note "${panel_id}" not found`);
     }
 
-    if (panel.type !== 'note') {
-      throw new Error(`Panel "${panel.title}" is not a note panel (type: ${panel.type})`);
-    }
+    const panel = this.findRenderablePanel(note.panelId || panel_id);
+    const currentBody = note.body || note.content || '';
 
     // Append by default, replace only if explicitly requested
+    let nextBody;
     if (mode === 'replace') {
-      panel.content = new_content;
+      nextBody = new_content;
     } else {
-      const separator = panel.content && panel.content.trim() ? '\n\n' : '';
-      panel.content = (panel.content || '') + separator + new_content;
+      const separator = currentBody && currentBody.trim() ? '\n\n' : '';
+      nextBody = currentBody + separator + new_content;
     }
-    panel.updatedAt = Date.now();
 
-    // Refresh UI
+    note.body = nextBody;
+    note.content = nextBody;
+    note.updatedAt = Date.now();
+    note.lastModified = note.updatedAt;
+    window.OrganizerStore.save?.();
+
+    // Refresh UI from organizer-backed content when the linked panel is open.
+    if (panel) {
+      panel.content = nextBody;
+      panel.body = nextBody;
+    }
     if (window.panelManager) {
       window.panelManager.refreshFromState();
     }
 
     // Emit event
     this.emitEvent('panel.updated', {
-      panel: { id: panel.id, title: panel.title, property: 'content' }
+      panel: { id: panel?.id || note.panelId || null, title: note.title || note.name, property: 'content' }
     });
 
     const action = mode === 'replace' ? 'Replaced' : 'Appended to';
     return {
       success: true,
-      message: `${action} content for note "${panel.title}"`,
-      panelId: panel.id
+      message: `${action} content for note "${note.title || note.name || 'Untitled note'}"`,
+      panelId: panel?.id || note.panelId || null,
+      noteId: note.id
     };
   }
 
@@ -1063,11 +1131,17 @@ class BriizOSTools {
     if (!panel) {
       throw new Error(`Panel "${panel_id}" not found`);
     }
+    if (panel.type === 'note' && !panel.orgId) {
+      throw new Error(`Note panel "${panel.title || panel.id}" is missing its organizer link.`);
+    }
 
     // Update position
     panel.x = x;
     panel.y = y;
     panel.updatedAt = Date.now();
+    if (window.briizPersistence?.savePanel) {
+      await window.briizPersistence.savePanel(panel);
+    }
 
     // Refresh UI
     if (window.panelManager) {
@@ -1104,12 +1178,18 @@ class BriizOSTools {
     if (!panel) {
       throw new Error(`Panel "${panel_id}" not found`);
     }
+    if (panel.type === 'note' && !panel.orgId) {
+      throw new Error(`Note panel "${panel.title || panel.id}" is missing its organizer link.`);
+    }
 
     // Update dimensions
     panel.w = width;
     panel.h = height;
     panel.autoHeight = false; // Disable auto-height when manually resizing
     panel.updatedAt = Date.now();
+    if (window.briizPersistence?.savePanel) {
+      await window.briizPersistence.savePanel(panel);
+    }
 
     // Refresh UI
     if (window.panelManager) {
@@ -1147,6 +1227,24 @@ class BriizOSTools {
 
     if (!sourcePanel) {
       throw new Error(`Panel "${panel_id}" not found`);
+    }
+
+    if (sourcePanel.type === 'note') {
+      const copiedPanel = await window.panelManager.createPanel('note', `${sourcePanel.title} (Copy)`, {
+        source: 'ai-assistant',
+        content: sourcePanel.content || sourcePanel.body || sourcePanel.organizerItem?.body || ''
+      });
+
+      this.emitEvent('panel.created', {
+        panel: { id: copiedPanel?.id, title: copiedPanel?.title, type: 'note' }
+      });
+
+      return {
+        success: true,
+        message: `Duplicated note "${sourcePanel.title}"`,
+        originalPanelId: sourcePanel.id,
+        newPanelId: copiedPanel?.id || null
+      };
     }
 
     // Create a copy
@@ -1201,8 +1299,15 @@ class BriizOSTools {
     const panel = state.panels[panelIndex];
     const panelTitle = panel.title;
 
-    // Remove from state
-    state.panels.splice(panelIndex, 1);
+    if (panel.type === 'note' && panel.orgId && window.OrganizerStore?.deleteOrganizerItem) {
+      window.OrganizerStore.deleteOrganizerItem(panel.orgId);
+    } else if (window.briizPersistence?.deletePanel) {
+      await window.briizPersistence.deletePanel(panel.id);
+    } else {
+      state.panels.splice(panelIndex, 1);
+    }
+    const currentIndex = state.panels.findIndex(p => String(p.id) === String(panel.id));
+    if (currentIndex !== -1) state.panels.splice(currentIndex, 1);
 
     // Remove DOM element
     const panelElement = document.getElementById(`panel-${panel.id}`);

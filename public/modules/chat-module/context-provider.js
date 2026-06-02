@@ -71,22 +71,27 @@ ${ctx.events.list.length === 0 ? 'No upcoming events.' : ctx.events.list.slice(0
       return { count: 0, list: [] };
     }
 
-    const activePanels = state.panels.filter(p => p.active !== false);
+    const renderablePanels = window.panelManager && typeof window.panelManager.getRenderablePanels === 'function'
+      ? window.panelManager.getRenderablePanels()
+      : (Array.isArray(state.renderablePanels) ? state.renderablePanels : []);
+    const activePanels = renderablePanels.filter(p => p.active !== false);
     const panelManager = window.panelManager;
     const minimized = panelManager ? panelManager.minStack || [] : [];
+    const organizerById = new Map((window.OrganizerStore?.items || state.organizer || []).map(item => [String(item.id), item]));
 
     const list = activePanels.map(p => {
+      const organizerItem = p.organizerItem || organizerById.get(String(p.orgId));
       const info = {
         id: p.id,
         type: p.type,
-        title: p.title || 'Untitled',
+        title: organizerItem?.title || organizerItem?.name || p.title || 'Untitled',
         minimized: minimized.includes(String(p.id)),
         position: { x: p.x, y: p.y },
         size: { w: p.w, h: p.h }
       };
-      // Include a content preview for note panels so the AI knows what's in them
-      if (p.type === 'note' && p.content) {
-        info.preview = p.content.substring(0, 120) + (p.content.length > 120 ? '...' : '');
+      // Note content comes from organizer records; panel docs are window state only.
+      if (p.type === 'note' && organizerItem?.body) {
+        info.preview = organizerItem.body.substring(0, 120) + (organizerItem.body.length > 120 ? '...' : '');
       }
       return info;
     });
