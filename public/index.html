@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3436,6 +3435,11 @@ bottom:0px}
 
 }
 
+
+#planetContainer{ 
+  z-index:10;
+}
+
 </style>
 </head>
 
@@ -3697,29 +3701,74 @@ bottom:0px}
 
         <label>Background Panel</label>
         <select id="af-background" class="org-recurring-toggle" style="padding:4px 8px">
-<option value="assets/backgrounds/24h.html">24h</option>
-<option value="assets/backgrounds/Butterflies.html">Butterflies</option>
-<option value="assets/backgrounds/Darkstars.html">Darkstars</option>
-<option value="assets/backgrounds/GlassClock.html">GlassClock</option>
-<option value="assets/backgrounds/Insectiana.html">Insectiana</option>
-<option value="assets/backgrounds/RotoPulse.html">RotoPulse</option>
-<option value="assets/backgrounds/Spheres.html">Tronnic</option>
-<option value="assets/backgrounds/Stars.html">EveStars</option>
-<option value="assets/backgrounds/Wallpaper.html">Wallpaper</option>
-<option value="assets/backgrounds/Widget.html">Weatherly</option>
-<option value="assets/backgrounds/colorink.html">InkBlot</option>
-<option value="assets/backgrounds/darkwater.html">DarkWater</option>
-<option value="assets/backgrounds/default-gradient.html">SimpleNight</option>
-<option value="assets/backgrounds/linetrance.html">Entrancing</option>
-<option value="assets/backgrounds/liquid.html">Waternight</option>
-<option value="assets/backgrounds/neuralnetworkbackground.html">NeuralNetwork</option>
-<option value="assets/backgrounds/portals.html">PS1</option>
-<option value="assets/backgrounds/rainbo.html">Rainbeaux</option>
-<option value="assets/backgrounds/rainpool.html">Rainpool</option>
-<option value="assets/backgrounds/thing.html">Orballix</option>
-<option value="assets/backgrounds/transformer.html">Transformazionne</option>
-<option value="assets/backgrounds/vialinebg.html">Vialine</option>
-<option value="assets/backgrounds/wavepool.html">Gravoidator</option>
+        <option value="assets/backgrounds/24h.html">24h</option>
+        <option value="assets/backgrounds/Aurora.html">Aurora</option>
+        <option value="assets/backgrounds/Balatro.html">Balatro</option>
+        <option value="assets/backgrounds/Ballpit.html">Ballpit</option>
+        <option value="assets/backgrounds/Beams.html">Beams</option>
+        <option value="assets/backgrounds/Butterflies.html">Butterflies</option>
+        <option value="assets/backgrounds/ColorBends.html">ColorBends</option>
+        <option value="assets/backgrounds/coloredbubbles.html">coloredbubbles</option>
+        <option value="assets/backgrounds/colorink.html">colorink</option>
+        <option value="assets/backgrounds/Darkstars.html">Darkstars</option>
+        <option value="assets/backgrounds/DarkVeil.html">DarkVeil</option>
+        <option value="assets/backgrounds/darkwater.html">darkwater</option>
+        <option value="assets/backgrounds/default-gradient.html">default-gradient</option>
+        <option value="assets/backgrounds/Dither.html">Dither</option>
+        <option value="assets/backgrounds/DotGrid.html">DotGrid</option>
+        <option value="assets/backgrounds/EvilEye.html">EvilEye</option>
+        <option value="assets/backgrounds/FaultyTerminal.html">FaultyTerminal</option>
+        <option value="assets/backgrounds/FloatingLines.html">FloatingLines</option>
+        <option value="assets/backgrounds/Galaxy.html">Galaxy</option>
+        <option value="assets/backgrounds/gems.html">gems</option>
+        <option value="assets/backgrounds/GlassClock.html">GlassClock</option>
+        <option value="assets/backgrounds/GradientBlinds.html">GradientBlinds</option>
+        <option value="assets/backgrounds/Grainient.html">Grainient</option>
+        <option value="assets/backgrounds/GridMotion.html">GridMotion</option>
+        <option value="assets/backgrounds/Insectiana.html">Insectiana</option>
+        <option value="assets/backgrounds/Iridescence.html">Iridescence</option>
+        <option value="assets/backgrounds/LetterGlitch.html">LetterGlitch</option>
+        <option value="assets/backgrounds/Lightning.html">Lightning</option>
+        <option value="assets/backgrounds/LightPillar.html">LightPillar</option>
+        <option value="assets/backgrounds/LightRays.html">LightRays</option>
+        <option value="assets/backgrounds/linetrance.html">linetrance</option>
+        <option value="assets/backgrounds/LineWaves.html">LineWaves</option>
+        <option value="assets/backgrounds/liquid.html">liquid</option>
+        <option value="assets/backgrounds/LiquidChrome.html">LiquidChrome</option>
+        <option value="assets/backgrounds/LiquidEther.html">LiquidEther</option>
+        <option value="assets/backgrounds/Mycelium.html">Mycelium</option>
+        <option value="assets/backgrounds/Orb.html">Orb</option>
+        <option value="assets/backgrounds/panning1.html">panning1</option>
+        <option value="assets/backgrounds/panning2.html">panning2</option>
+        <option value="assets/backgrounds/panning3.html">panning3</option>
+        <option value="assets/backgrounds/Particles.html">Particles</option>
+        <option value="assets/backgrounds/PixelBlast.html">PixelBlast</option>
+        <option value="assets/backgrounds/PixelSnow.html">PixelSnow</option>
+        <option value="assets/backgrounds/Plasma.html">Plasma</option>
+        <option value="assets/backgrounds/portals.html">portals</option>
+        <option value="assets/backgrounds/Prism.html">Prism</option>
+        <option value="assets/backgrounds/PrismaticBurst.html">PrismaticBurst</option>
+        <option value="assets/backgrounds/Radar.html">Radar</option>
+        <option value="assets/backgrounds/rainbo.html">rainbo</option>
+        <option value="assets/backgrounds/rainpool.html">rainpool</option>
+        <option value="assets/backgrounds/RippleGrid.html">RippleGrid</option>
+        <option value="assets/backgrounds/RotoPulse.html">RotoPulse</option>
+        <option value="assets/backgrounds/ShapeGrid.html">ShapeGrid</option>
+        <option value="assets/backgrounds/Silk.html">Silk</option>
+        <option value="assets/backgrounds/SoftAurora.html">SoftAurora</option>
+        <option value="assets/backgrounds/Spheres.html">Spheres</option>
+        <option value="assets/backgrounds/Spores.html">Spores</option>
+        <option value="assets/backgrounds/Stars.html">Stars</option>
+        <option value="assets/backgrounds/Thing.html">thing</option>
+        <option value="assets/backgrounds/Threads.html">Threads</option>
+        <option value="assets/backgrounds/Tide.html">Tide</option>
+        <option value="assets/backgrounds/transformer.html">transformer</option>
+        <option value="assets/backgrounds/vialinebg.html">vialinebg</option>
+        <option value="assets/backgrounds/visualizer5.html">visualizer5</option>
+        <option value="assets/backgrounds/visualizer6.html">visualizer6</option>
+        <option value="assets/backgrounds/Wallpaper.html">Wallpaper</option>
+        <option value="assets/backgrounds/wavepool.html">wavepool</option>
+        <option value="assets/backgrounds/Widget.html">Widget</option>
         </select>
       <label>Background Edit</label>
                         <button id="bg-edit" class="org-recurring-toggle">Edit</button>

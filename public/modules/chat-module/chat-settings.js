@@ -33,31 +33,22 @@ class SettingsManager {
     this.loadApiKeys();
   }
 
-  // Load API keys from window globals (hardcoded in chat-api.js)
+  // Load API keys from environment
   loadApiKeys() {
     try {
-      // Check if keys are already in localStorage
-      const geminiKey = localStorage.getItem('GEMINI_API_KEY');
-      const openaiKey = localStorage.getItem('OPENAI_API_KEY');
-      const anthropicKey = localStorage.getItem('ANTHROPIC_API_KEY');
+      const geminiKey = process.env.GEMINI_API_KEY;
+      const openaiKey = process.env.OPENAI_API_KEY;
+      const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-      // If not in localStorage, load from window globals (hardcoded)
-      if (!geminiKey && window.GEMINI_API_KEY) {
-        localStorage.setItem('GEMINI_API_KEY', window.GEMINI_API_KEY);
-        console.log('✓ Gemini API key loaded from hardcoded value');
-      }
-      if (!openaiKey && window.OPENAI_API_KEY) {
-        localStorage.setItem('OPENAI_API_KEY', window.OPENAI_API_KEY);
-        console.log('✓ OpenAI API key loaded from hardcoded value');
-      }
-      if (!anthropicKey && window.ANTHROPIC_API_KEY) {
-        localStorage.setItem('ANTHROPIC_API_KEY', window.ANTHROPIC_API_KEY);
-        console.log('✓ Anthropic API key loaded from hardcoded value');
-      }
+      console.log('Keys loaded from environment variables');
     } catch (e) {
       console.warn('Could not load API keys:', e);
     }
   }
+
+
+
+
 
   // ============ State Management ============
 

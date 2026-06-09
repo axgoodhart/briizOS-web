@@ -1,14 +1,8 @@
-const GEMINIAPIKEY = 'AIzaSyBy8D-ZuZLUaJADsN2dTJTjKAaQhPtx3N8';
-const OPENAIAPIKEY = 'sk-proj-4Z7NZT48lrsBFOaKWjxXT3BlbkFJXS3iZT03tjbq1cgubmiz';
-const CLAUDEKEY = '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';
+const geminiKey = process.env.GEMINI_API_KEY;
+const openaiKey = process.env.OPENAI_API_KEY;
+const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-// Wire hardcoded keys into the globals this module expects
-window.GEMINI_API_KEY = GEMINIAPIKEY;
-window.OPENAI_API_KEY = OPENAIAPIKEY;
-window.ANTHROPIC_API_KEY = CLAUDEKEY;
 
-// Chat API Module - Direct client-side streaming to providers
-// WARNING: This exposes API keys in the browser. Use only for local/dev.
 
 class ChatAPI {
   constructor() {
