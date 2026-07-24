@@ -140,6 +140,59 @@
   transform: rotate(180deg);
 }
 
+/* Provider API Key */
+.cs-api-key-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 10px 18px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.cs-api-key-row > label {
+  font-size: 2.2rem;
+  color: #30ff8f;
+  font-family: Hypatia Sans Pro, 'Montserrat', monospace;
+}
+
+.cs-api-key-control {
+  display: flex;
+  min-width: 0;
+}
+
+.cs-api-key-control input {
+  flex: 1;
+  min-width: 0;
+  background: #0b0b17;
+  border: 2px solid #2ec3ff;
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  color: #e6ffff;
+  padding: 11px 14px;
+  font-family: Hypatia Sans Pro, 'Montserrat', sans-serif;
+  font-size: 1rem;
+  box-shadow: 0 0 8px rgba(25, 216, 255, 0.2) inset;
+}
+
+.cs-api-key-control button {
+  border: 2px solid #2ec3ff;
+  border-radius: 0 14px 14px 0;
+  background: rgba(46, 195, 255, 0.2);
+  color: #e6ffff;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.cs-api-key-status {
+  grid-column: 2;
+  color: #30ff8f;
+  font-size: 0.9rem;
+}
+
+.cs-api-key-status.is-missing {
+  color: #ffb45c;
+}
+
 .cs-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -611,6 +664,16 @@ font-weight:600;
 
   .cs-model-select {
     width: 100%;
+  }
+
+  .cs-api-key-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-api-key-row > label,
+  .cs-api-key-control,
+  .cs-api-key-status {
+    grid-column: 1;
   }
 
   .cs-slider-group {

@@ -1,58 +1,27 @@
-const geminiKey = process.env.GEMINI_API_KEY;
-const openaiKey = process.env.OPENAI_API_KEY;
-const anthropicKey = process.env.ANTHROPIC_API_KEY;
-
-
-
 class ChatAPI {
   constructor() {
     this.enableTools = true; // Enable tool calling by default
     this.buffer = ''; // Buffer for detecting JSON tool calls
   }
 
-  // Resolve API key for a provider from localStorage or globals; prompt if missing
+  // API keys are entered and stored through the AI Settings modal.
   ensureApiKey(provider) {
-    const keyMap = {
-      gemini: {
-        ls: 'GEMINI_API_KEY',
-        global: 'GEMINI_API_KEY',
-        label: 'Enter your Google Gemini API key',
-      },
-      claude: {
-        ls: 'ANTHROPIC_API_KEY',
-        global: 'ANTHROPIC_API_KEY',
-        label: 'Enter your Anthropic API key',
-      },
-      openai: {
-        ls: 'OPENAI_API_KEY',
-        global: 'OPENAI_API_KEY',
-        label: 'Enter your OpenAI API key',
-      },
-      chatgpt: {
-        ls: 'OPENAI_API_KEY',
-        global: 'OPENAI_API_KEY',
-        label: 'Enter your OpenAI API key',
-      },
+    const settingsProvider = provider === 'openai' ? 'chatgpt' : provider;
+    const providerLabels = {
+      gemini: 'Google Gemini',
+      claude: 'Anthropic',
+      chatgpt: 'OpenAI',
     };
 
-    const cfg = keyMap[provider];
-    if (!cfg) throw new Error(`Unknown provider: ${provider}`);
-
-    let key = null;
-    if (typeof window !== 'undefined') key = window[cfg.global];
-    if (!key) {
-      try { key = localStorage.getItem(cfg.ls); } catch (_) {}
+    if (!providerLabels[settingsProvider]) {
+      throw new Error(`Unknown provider: ${provider}`);
     }
 
+    const key = window.settingsManager?.getApiKey(settingsProvider);
     if (!key) {
-      const entered = window.prompt(`${cfg.label} (will be stored in localStorage)`);
-      if (entered) {
-        key = entered.trim();
-        try { localStorage.setItem(cfg.ls, key); } catch (_) {}
-      }
+      throw new Error(`Add your ${providerLabels[settingsProvider]} API key in AI Settings before sending a message.`);
     }
 
-    if (!key) throw new Error(`${provider} API key is required`);
     return key;
   }
 

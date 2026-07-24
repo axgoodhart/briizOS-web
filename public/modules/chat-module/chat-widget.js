@@ -563,6 +563,13 @@ class ChatWidget {
   async handleSend() {
     if (!this.input.trim() || this.isLoading) return;
 
+    const provider = this.settingsManager?.getCurrentProvider();
+    if (this.settingsManager && !this.settingsManager.getApiKey(provider)) {
+      this.showSettings();
+      this.settingsManager.elements.apiKeyInput?.focus();
+      return;
+    }
+
     const userMessage = this.input.trim();
     this.input = '';
     this.isLoading = true;
@@ -1206,4 +1213,3 @@ class ChatWidget {
 
 // Export for use in briizOS
 window.ChatWidget = ChatWidget;
-

@@ -4,6 +4,7 @@ class SettingsManager {
   constructor() {
     this.STORAGE_KEY = 'briizos.chatSettings.v1';
     this.HISTORY_KEY = 'briizos.chatHistory.v1';
+    this.API_KEYS_STORAGE_KEY = 'briizos.aiApiKeys.v1';
 
     this.DEFAULT_MODELS = {
       chatgpt: ['gpt-4.1', 'gpt-4o', 'gpt-4o-mini', 'o3-mini-high', 'o3-mini', 'gpt-3.5-turbo'],
@@ -23,32 +24,42 @@ class SettingsManager {
     };
 
     this.state = this.loadState();
+    this.apiKeys = this.loadApiKeys();
     this.listeners = new Set();
     this.historyListeners = new Set();
 
     // UI elements (will be set when panel is rendered)
     this.elements = {};
 
-    // Load hardcoded API keys from chat-api.js if available
-    this.loadApiKeys();
   }
 
-  // Load API keys from environment
+  // API keys are kept separately so they are not copied into settings history.
   loadApiKeys() {
-    try {
-      const geminiKey = process.env.GEMINI_API_KEY;
-      const openaiKey = process.env.OPENAI_API_KEY;
-      const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const emptyKeys = {
+      chatgpt: '',
+      gemini: '',
+      claude: ''
+    };
 
-      console.log('Keys loaded from environment variables');
+    try {
+      const raw = localStorage.getItem(this.API_KEYS_STORAGE_KEY);
+      if (!raw) return emptyKeys;
+
+      const savedKeys = JSON.parse(raw);
+      return Object.assign(emptyKeys, savedKeys);
     } catch (e) {
-      console.warn('Could not load API keys:', e);
+      console.warn('Failed to load AI API keys', e);
+      return emptyKeys;
     }
   }
 
-
-
-
+  saveApiKeys() {
+    try {
+      localStorage.setItem(this.API_KEYS_STORAGE_KEY, JSON.stringify(this.apiKeys));
+    } catch (e) {
+      console.error('Failed to save AI API keys', e);
+    }
+  }
 
   // ============ State Management ============
 
@@ -128,6 +139,20 @@ class SettingsManager {
   getProviderSettings(provider = null) {
     const p = provider || this.state.provider;
     return this.state.providers[p];
+  }
+
+  getApiKey(provider = null) {
+    const requestedProvider = provider || this.state.provider;
+    const p = requestedProvider === 'openai' ? 'chatgpt' : requestedProvider;
+    return this.apiKeys[p] || '';
+  }
+
+  setApiKey(provider, apiKey) {
+    const p = provider === 'openai' ? 'chatgpt' : provider;
+    if (!Object.prototype.hasOwnProperty.call(this.apiKeys, p)) return;
+
+    this.apiKeys[p] = apiKey.trim();
+    this.saveApiKeys();
   }
 
   getAllSettings() {
@@ -308,6 +333,15 @@ class SettingsManager {
             </div>
           </div>
 
+          <div class="cs-api-key-row">
+            <label for="csApiKeyInput">API Key</label>
+            <div class="cs-api-key-control">
+              <input id="csApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Enter API key for this provider" />
+              <button id="csApiKeyToggle" type="button">Show</button>
+            </div>
+            <div class="cs-api-key-status" id="csApiKeyStatus"></div>
+          </div>
+
           <div class="cs-slider-row">
             <div class="cs-slider-group">
               <label for="csTopP">Top P</label>
@@ -375,6 +409,7 @@ class SettingsManager {
     this.cacheElements();
     this.attachEventListeners();
     this.renderModelDropdown(this.state.provider);
+    this.updateApiKeyUI();
   }
 
   cacheElements() {
@@ -387,6 +422,9 @@ class SettingsManager {
       customModelRow: document.getElementById('csCustomModelRow'),
       customModelInput: document.getElementById('csCustomModelInput'),
       addCustomModelBtn: document.getElementById('csAddCustomModelBtn'),
+      apiKeyInput: document.getElementById('csApiKeyInput'),
+      apiKeyToggle: document.getElementById('csApiKeyToggle'),
+      apiKeyStatus: document.getElementById('csApiKeyStatus'),
       topP: document.getElementById('csTopP'),
       topPValue: document.getElementById('csTopPValue'),
       temperature: document.getElementById('csTemperature'),
@@ -446,6 +484,22 @@ class SettingsManager {
     els.navPills.forEach(pill => {
       pill.addEventListener('click', () => this.switchProvider(pill.dataset.provider));
     });
+
+    // API key
+    if (els.apiKeyInput) {
+      els.apiKeyInput.addEventListener('input', () => {
+        this.setApiKey(this.state.provider, els.apiKeyInput.value);
+        this.updateApiKeyStatus(Boolean(els.apiKeyInput.value.trim()));
+      });
+    }
+
+    if (els.apiKeyToggle) {
+      els.apiKeyToggle.addEventListener('click', () => {
+        const shouldShow = els.apiKeyInput.type === 'password';
+        els.apiKeyInput.type = shouldShow ? 'text' : 'password';
+        els.apiKeyToggle.textContent = shouldShow ? 'Hide' : 'Show';
+      });
+    }
 
     // Sliders
     if (els.topP) {
@@ -591,6 +645,23 @@ class SettingsManager {
     this.updateUI();
   }
 
+  updateApiKeyStatus(hasKey) {
+    if (!this.elements.apiKeyStatus) return;
+
+    this.elements.apiKeyStatus.textContent = hasKey ? 'Saved locally' : 'Required before sending';
+    this.elements.apiKeyStatus.classList.toggle('is-missing', !hasKey);
+  }
+
+  updateApiKeyUI() {
+    if (!this.elements.apiKeyInput) return;
+
+    const apiKey = this.getApiKey(this.state.provider);
+    this.elements.apiKeyInput.value = apiKey;
+    this.elements.apiKeyInput.type = 'password';
+    this.elements.apiKeyToggle.textContent = 'Show';
+    this.updateApiKeyStatus(Boolean(apiKey));
+  }
+
   updateUI() {
     const provider = this.state.provider;
     const settings = this.state.providers[provider];
@@ -609,6 +680,9 @@ class SettingsManager {
     // Update prompt
     this.elements.promptText.value = settings.prompt || '';
     this.elements.promptMeta.textContent = `${(settings.prompt || '').length} chars`;
+
+    // Update provider API key
+    this.updateApiKeyUI();
 
     // Update active pill
     this.elements.navPills.forEach(p => {
