@@ -317,6 +317,18 @@ class SettingsManager {
         <div class="chat-settings-panel">
           <div class="cs-header-row">
             <span class="cs-logo">AI Settings</span>
+                    <nav class="cs-bottom-nav">
+          <div class="cs-nav-pill chatgpt ${this.state.provider === 'chatgpt' ? 'active' : ''}" data-provider="chatgpt">
+            <span>❁</span>
+          </div>
+          <div class="cs-nav-pill gemini ${this.state.provider === 'gemini' ? 'active' : ''}" data-provider="gemini">
+            <span>✦</span>
+          </div>
+          <div class="cs-nav-pill claude ${this.state.provider === 'claude' ? 'active' : ''}" data-provider="claude">
+            <span>✴︎</span>
+          </div>
+        </nav>
+
             <button class="cs-close-btn" id="csCloseBtn">✕</button>
           </div>
 
@@ -369,17 +381,6 @@ class SettingsManager {
           </div>
         </div>
 
-        <nav class="cs-bottom-nav">
-          <div class="cs-nav-pill chatgpt ${this.state.provider === 'chatgpt' ? 'active' : ''}" data-provider="chatgpt">
-            <span>❁</span>
-          </div>
-          <div class="cs-nav-pill gemini ${this.state.provider === 'gemini' ? 'active' : ''}" data-provider="gemini">
-            <span>✦</span>
-          </div>
-          <div class="cs-nav-pill claude ${this.state.provider === 'claude' ? 'active' : ''}" data-provider="claude">
-            <span>✴︎</span>
-          </div>
-        </nav>
 
         <!-- History Panel -->
         <aside class="cs-history-panel" id="csHistoryPanel" style="display: none;">

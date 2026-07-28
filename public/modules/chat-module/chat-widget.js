@@ -18,6 +18,7 @@ class ChatWidget {
     this.pairEls = [];
     this.inputEl = null;
     this.sendBtn = null;
+    this.configBtn = null;
     this.settingsContainer = null;
 
     // Configure marked.js for safe rendering
@@ -235,7 +236,13 @@ class ChatWidget {
       </div>
 
         <!-- Bottom input (normal mode) -->
+
         <div class="cw-input" data-inputbar="${this.panelId}">
+
+                  <button class="cw-config" data-config="${this.panelId}" title="Configuration">
+            <i class="fas fa-cog"></i>
+          </button>
+
           <textarea
             class="cw-textarea"
             placeholder="Ask anything..."
@@ -280,6 +287,7 @@ class ChatWidget {
     this.pairEls = Array.from(this.container.querySelectorAll('[data-pair]'));
     this.inputEl = this.container.querySelector(`[data-input="${this.panelId}"]`);
     this.sendBtn = this.container.querySelector(`[data-send="${this.panelId}"]`);
+    this.configBtn = this.container.querySelector(`[data-config="${this.panelId}"]`);
     this.settingsContainer = this.container.querySelector(`[data-settings-container="${this.panelId}"]`);
 
     // Re-bind event listeners after re-render
@@ -306,8 +314,11 @@ class ChatWidget {
         }
       });
 
+ 
+
       // Show conversation area on focus
       this.inputEl.addEventListener('focus', () => {
+        this.inputEl.classList.add('focus');
         if (!this.hasInteracted && this.conversationArea) {
           this.hasInteracted = true;
           this.conversationArea.classList.remove('hidden-until-interaction');
@@ -316,8 +327,21 @@ class ChatWidget {
         if (this.conversationArea && this.conversationArea.classList.contains('collapsed')) {
           this.expandChat();
         }
+        if (this.conversationArea && this.conversationArea.classList.contains('hidden-until-interaction')) {
+          this.conversationArea.classList.remove('hidden-until-interaction');
+        }
         //filter parent window to darken background
         parent.filterParentWindow();
+      });
+    }
+    // Hide conversation area on blur
+    if (this.inputEl) {
+      this.inputEl.addEventListener('blur', () => {
+        this.inputEl.classList.remove('focus');
+        setTimeout(() => {
+          if(this.inputEl.classList.contains('focus')) return; 
+          this.conversationArea.classList.add('hidden-until-interaction');
+        }, 2000)
       });
     }
 
@@ -333,27 +357,12 @@ class ChatWidget {
 
     // Send button with hold-to-open settings
     if (this.sendBtn) {
-      let holdTimer = null;
-      let holdStarted = false;
-
-      this.sendBtn.addEventListener('mousedown', (e) => {
-        holdStarted = false;
-        holdTimer = setTimeout(() => {
-          holdStarted = true;
-          this.showSettings();
-        }, 1000); // 1 second hold
-      });
 
       this.sendBtn.addEventListener('mouseup', (e) => {
-        clearTimeout(holdTimer);
-        if (!holdStarted) {
+
           // Normal click - send message
           this.handleSend();
-        }
-      });
-
-      this.sendBtn.addEventListener('mouseleave', () => {
-        clearTimeout(holdTimer);
+        
       });
 
       // Touch support for mobile
@@ -371,6 +380,17 @@ class ChatWidget {
           this.handleSend();
         }
       });
+
+
+      this.configBtn.addEventListener('mousedown', (e) => {
+        this.showSettings();
+      });
+      this.configBtn.addEventListener('touchstart', (e) => {
+        this.showSettings();
+      });
+
+
+      
     }
 
     // Remote AI button - toggle to remote mode

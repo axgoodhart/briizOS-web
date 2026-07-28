@@ -6,7 +6,7 @@
 <!-- CSP relaxed for Electron local app -->
 <meta http-equiv="Content-Security-Policy"
  content="default-src 'self' https: file:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: file: blob: data:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' data: https: file:; connect-src 'self' https: wss:; frame-src * blob: data: file:;">
-<title>glOS - Operating System for Thoughts</title>
+<title>briizOS | Web</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
 <link rel="stylesheet" href="modules/chat-module/chat-widget.css">
@@ -3043,10 +3043,7 @@ align-items:center;
   }
 
   #fixed-chat-container:focus-within .cw-input {
-    width:80vw;
-    left:10vw;
-    bottom:18px;
-  }
+opacity:1;  }
 
   #fixed-chat-container.oops {
     transition:all 1s ease;
@@ -3421,18 +3418,29 @@ bottom:0px}
 }
 
 .cw-conversation-area {
-  transform-style: preserve-3d;
-  width:50%;
-  transform:translateX(50%)translateY(-10%)rotateY(-10deg);
+    transform-style: preserve-3d;
+    width: 70%;
+    transform: translateX(13%) translateY(-10%) rotateY(-10deg);
 }
 
 .cw-collapse-btn {
-
-    bottom: 10% !important;
-    right: -35px !important;
-    border-radius: 0 60px 60px 0 !important;
-    height: 40px !important;
-
+    bottom: 21vh;
+    left: 50%;
+    right: auto !important;
+    border-radius: 10px 10px 0 0 !important;
+    height: 20px !important;
+    width: 300px;
+    transform: translateX(-50%);
+    border-top: 1px solid rgba(0, 255, 155, 0.8);
+    font-family: SF Pro Display;
+    font-weight: 200;
+    border: none;
+    background: none;
+    box-shadow: none;
+    font-size: 30px;
+    opacity: .7;
+    color: rgba(0,255,188,.8);
+    text-shadow: 0 90px 3px white;
 }
 
 
