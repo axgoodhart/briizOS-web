@@ -184,11 +184,7 @@ class ChatWidget {
       <div class="cw-conversation-area ${pairs.length === 0 ? 'no-messages' : ''} ${!this.hasInteracted ? 'hidden-until-interaction' : ''}" data-conversation-area="${this.panelId}">
 
         <!-- Collapse button -->
-        <button class="cw-collapse-btn" data-collapse="${this.panelId}" title="Collapse chat">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="18 15 12 9 6 15"></polyline>
-          </svg>
-        </button>
+        <button class="cw-collapse-btn" data-collapse="${this.panelId}" title="Collapse chat" aria-label="Collapse chat">􀁸</button>
 
         <!-- Scrollable conversation area -->
         ${pairs.length > 0 ? `
@@ -334,9 +330,10 @@ class ChatWidget {
         parent.filterParentWindow();
       });
     }
-    // Hide conversation area on blur
+    // Hide conversation area on blur but not if the mouse is over the input, cw-scroll / cw-list, cw-send, or collapse
     if (this.inputEl) {
       this.inputEl.addEventListener('blur', () => {
+      
         this.inputEl.classList.remove('focus');
         setTimeout(() => {
           if(this.inputEl.classList.contains('focus')) return; 
@@ -348,7 +345,6 @@ class ChatWidget {
     
 
     // Collapse button
-    const collapseBtn = this.container.querySelector(`[data-collapse="${this.panelId}"]`);
     if (collapseBtn) {
       collapseBtn.addEventListener('click', () => {
         this.toggleCollapse();

@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orb Lab</title>
+<style>
+@property --spin { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+:root {
+  --bg: #06070b;
+  --line: #1a1e2b;
+  --line-hi: #2a3045;
+  --accent: #6b7cff;
+  --ink: #eef0f7;
+  --muted: #868ca3;
+  --radius: 22px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; }
+body { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100dvh; overflow: hidden; background: radial-gradient(1200px 600px at 50% -10%, #151a36, transparent 60%), var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+
+/* ==== HEADER ==== */
+header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 20px; padding: 18px 16px 14px; }
+.brand { color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.info { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; }
+.info h2 { font-size: clamp(22px, 3.2vw, 34px); font-weight: 650; letter-spacing: -.03em; line-height: 1.1; }
+.info p { color: var(--muted); font-size: 14px; }
+.tag { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: #131725; color: #a8afc8; font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* ==== VIEWER ==== */
+.viewer { position: relative; container-type: size; display: grid; place-items: center; margin-inline: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: radial-gradient(circle at 50% 45%, #10142099, transparent 70%), #08090e; overflow: hidden; }
+.viewer .stage { width: min(100cqw, 100cqh); }
+
+/* ==== RAIL ==== */
+.rail { display: flex; gap: 12px; padding: 14px 16px 16px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.card { position: relative; flex: 1 0 116px; max-width: 180px; scroll-snap-align: start; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, #0f121a, #0a0c12); transition: border-color .25s, box-shadow .25s, translate .25s; }
+.card:hover { border-color: var(--line-hi); translate: 0 -2px; }
+.card:has([aria-selected="true"]) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 30px -12px var(--accent); }
+.card:has(button:focus-visible) { outline: 2px solid #ffffff70; outline-offset: 2px; }
+.card .stage { pointer-events: none; }
+.card .goo { filter: url(#goo-sm); }
+.card button { all: unset; display: block; padding: 8px 10px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.card button::after { content: ""; position: absolute; inset: 0; } /* whole card is the hit area */
+
+.stage { position: relative; aspect-ratio: 1; container-type: size; overflow: hidden; background: radial-gradient(circle, #ffffff07, transparent 70%); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage.drag { touch-action: none; cursor: grab; }
+.stage.drag:active { cursor: grabbing; }
+
+/* ==== GOO ==== */
+.goo { position: absolute; inset: 0; filter: url(#goo); }
+.goo i { position: absolute; left: 0; top: 0; width: calc(var(--s) * 100cqw); aspect-ratio: 1; margin: calc(var(--s) * -50cqw); border-radius: 50%; background: radial-gradient(circle at 35% 30%, hsl(var(--h) 100% 78%), hsl(calc(var(--h) + 50) 95% 55%) 60%, hsl(calc(var(--h) + 90) 90% 40%)); will-change: translate; }
+
+/* ==== ORBITS ==== */
+.orbits { position: absolute; inset: 0; }
+.orbits svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.orbits ellipse { fill: none; stroke: #ffffff1f; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sun { position: absolute; left: 50%; top: 50%; z-index: 100; width: 22cqw; aspect-ratio: 1; margin: -11cqw; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff7d6, #ffb347 45%, #ff5e3a 85%); box-shadow: 0 0 10cqw #ff8a3d88, 0 0 30cqw #ff5e3a44; }
+.pl { --lx: 35%; --ly: 30%; position: absolute; left: 50%; top: 50%; width: calc(var(--s) * 1cqw); aspect-ratio: 1; margin: calc(var(--s) * -.5cqw); border-radius: 50%; cursor: pointer; background: radial-gradient(circle at var(--lx) var(--ly), var(--a), var(--b) 55%, #05060a 110%); box-shadow: 0 0 6cqw color-mix(in oklab, var(--b) 55%, transparent); }
+.pl span { position: absolute; left: 50%; top: 100%; translate: -50% 1.5cqw; font: 600 max(9px, 2cqw)/1 ui-monospace, monospace; letter-spacing: .18em; color: #fff; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.pl:hover span { opacity: .9; }
+
+/* ==== SHADER ==== */
+.stage.fallback { background: radial-gradient(circle at 42% 38%, #fff, #7af 18%, #a3f 48%, #201040 71%, transparent 72%); }
+
+/* ==== DIAL ==== */
+.dial { --v: 42; --hue: calc(190 + var(--v) * 1.5); position: absolute; inset: 14%; border-radius: 50%; touch-action: none; cursor: grab; outline: none; }
+.dial:focus-visible { box-shadow: 0 0 0 2px #ffffff40; }
+.dial::before { content: ""; position: absolute; inset: 11cqw; border-radius: 50%; background: radial-gradient(circle at 50% 25%, #1d2233, #0b0d14 70%); box-shadow: inset 0 1px 0 #ffffff14, 0 3cqw 8cqw #0008; }
+.dial .track, .dial .fill { position: absolute; inset: 0; border-radius: 50%; -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 6cqw), #000 calc(100% - 6cqw + 1px)); mask: radial-gradient(farthest-side, #0000 calc(100% - 6cqw), #000 calc(100% - 6cqw + 1px)); }
+.dial .track { background: conic-gradient(from -135deg, #ffffff12 0 270deg, #0000 0); }
+.dial .glow { position: absolute; inset: 0; filter: drop-shadow(0 0 3cqw hsl(var(--hue) 100% 60% / .55)); }
+.dial .fill { background: conic-gradient(from -135deg, hsl(190 100% 60%), hsl(var(--hue) 100% 62%) calc(var(--v) * 2.7deg), #0000 0); }
+.dial .knob { position: absolute; inset: 0; rotate: calc(-135deg + var(--v) * 2.7deg); pointer-events: none; }
+.dial .knob::after { content: ""; position: absolute; left: 50%; top: 3cqw; width: 4.5cqw; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: #fff; box-shadow: 0 0 0 .8cqw hsl(var(--hue) 100% 60%), 0 0 5cqw hsl(var(--hue) 100% 60%); }
+.dial output { position: absolute; inset: 0; display: grid; place-items: center; font: 600 15cqw/1 system-ui, sans-serif; letter-spacing: -.04em; font-variant-numeric: tabular-nums; color: hsl(var(--hue) 100% 85%); pointer-events: none; }
+
+/* ==== MAGNET ==== */
+.mag { --hx: 35%; --hy: 30%; position: absolute; left: 50%; top: 50%; width: 38cqw; aspect-ratio: 1; margin: -19cqw; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: radial-gradient(circle at var(--hx) var(--hy), #fff 0, #ffd1f7 8%, #c86bff 30%, #5b2bff 62%, #1a0b5c 100%); box-shadow: 0 5cqw 15cqw -3cqw #7a3cff99, inset 0 -3cqw 8cqw #0005; will-change: transform; }
+.mag:focus-visible { outline: 2px solid #ffffff60; outline-offset: 6px; }
+.spark { position: absolute; left: 0; top: 0; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; pointer-events: none; }
+
+/* ==== HALO ==== */
+.halo { --spread: 1; --px: 0; --py: 0; position: absolute; inset: 0; display: grid; place-items: center; }
+.halo i { --m: radial-gradient(farthest-side, #0000 calc(100% - var(--w) - 4cqw), #0004 calc(100% - var(--w)), #000 calc(100% - var(--w) + 1px) calc(100% - 1px), #0000 100%); grid-area: 1 / 1; width: calc((26 + var(--n) * 12 * var(--spread)) * 1cqw); aspect-ratio: 1; border-radius: 50%; translate: calc(var(--px) * var(--n) * 1cqw) calc(var(--py) * var(--n) * 1cqw); background: conic-gradient(from var(--spin), hsl(var(--h) 100% 62%), hsl(calc(var(--h) + 120) 100% 62%), hsl(calc(var(--h) + 240) 100% 62%), hsl(var(--h) 100% 62%)); -webkit-mask: var(--m); mask: var(--m); mix-blend-mode: screen; animation: spin calc(var(--d) * 1s) linear infinite var(--dir, normal); }
+.halo b { grid-area: 1 / 1; width: 18cqw; aspect-ratio: 1; border-radius: 50%; translate: calc(var(--px) * -1cqw) calc(var(--py) * -1cqw); background: radial-gradient(circle at 40% 35%, #fff, #9be7ff 30%, #4c6fff 70%, #2a1a7a); box-shadow: 0 0 10cqw #6aa7ff88; }
+@keyframes spin { to { --spin: 360deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .halo i { animation-duration: calc(var(--d) * 6s); }
+  .card { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="goo">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="b"/>
+    <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="g"/>
+    <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+  </filter>
+  <filter id="goo-sm">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
+    <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="g"/>
+    <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+  </filter>
+</svg>
+
+<header>
+  <span class="brand">Orb Lab</span>
+  <div class="info" aria-live="polite"><h2></h2><p></p><span class="tag"></span></div>
+</header>
+
+<main class="viewer" id="viewer" role="tabpanel"></main>
+
+<nav class="rail" role="tablist" aria-label="Demos"></nav>
+
+<script type="module">
+// ==== GLOBAL ====
+const MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches ? .25 : 1; // ambient speed scale
+const DPR_MAX = 2;                                                                // canvas pixel-ratio cap
+const REF = 400;                                                                  // stage px that px-based sizes are tuned for
+
+// ==== GOO ====
+const GOO = {
+  count: 8,          // blobs
+  size: [.24, .1],   // diameter range, stage fraction
+  orbit: [.08, .2],  // orbit radius around leader
+  stiff: [160, 40],  // spring range, leader → tail
+  damp: 10,          // spring damping
+  burst: 2.5,        // click impulse
+};
+
+// ==== ORBITS ====
+const ORBITS = {
+  persp: 160,        // perspective depth, cqw
+  tilt: [.15, .75],  // plane tilt range (pointer y)
+  roll: 22,          // max roll, deg (pointer x)
+  ease: 4,           // smoothing rate
+  hover: .15,        // time scale while hovering a planet
+  rewind: -3,        // time scale while held
+  planets: [         // label, orbit r, size, period s, light, dark
+    ['HOME',   18, 11, 7,  '#b8f6ff', '#0a6fa8'],
+    ['MUSIC',  30, 8,  12, '#ffc2d4', '#c4003f'],
+    ['SCHOOL', 42, 6,  19, '#fff3a6', '#d99a00'],
+  ],
+};
+
+// ==== SHADER ====
+const SHADER = {
+  ease: 5,           // light follow rate
+  decay: 2.2,        // wobble decay rate
+};
+
+// ==== GLOBE ====
+const GLOBE = {
+  count: 900,        // dots
+  radius: .36,       // stage fraction
+  dot: 1.7,          // dot radius at REF px
+  spin: .25,         // idle spin, rad/s
+  friction: 2,       // inertia decay rate
+  drag: .008,        // rad per px dragged
+  repel: .14,        // pointer repel radius, stage fraction
+};
+
+// ==== DIAL ====
+const DIAL = {
+  start: 42,         // initial value
+  stiff: 180,        // display spring
+  damp: 20,          // display damping
+};
+
+// ==== POND ====
+const POND = {
+  life: 2.6,         // ring lifetime, s
+  speed: .32,        // expansion, stage/s
+  echoes: 3,         // rings per drop
+  rain: 1.2,         // ambient drops/s
+  trail: .06,        // trail spacing, stage fraction
+  max: 120,          // ring cap
+};
+
+// ==== MAGNET ====
+const MAGNET = {
+  reach: .45,        // pull radius, stage fraction
+  pull: .35,         // follow strength
+  stiff: 220,        // spring
+  damp: 16,          // damping
+  squash: .12,       // stretch per unit speed
+  maxSquash: .28,    // stretch cap
+  sparks: 14,        // particles per click
+};
+
+// ==== HALO ====
+const HALO = {
+  stiff: 90,         // spread spring
+  damp: 9,           // spread damping
+  kick: 4,           // click impulse
+  grow: .3,          // spread gain near center
+  parallax: 1.5,     // ring offset per depth step, cqw
+};
+
+// ==== CATALOG ====
+const CATALOG = [
+  { id: 'goo',    name: 'Goo Cluster',    hint: 'Move through it. Click to scatter.', tag: 'SVG goo filter · springs', label: 'Gooey metaball cluster' },
+  { id: 'orbits', name: 'Orbits',         hint: 'Pointer tilts and rolls the plane. Hover a planet to slow time, hold to rewind.', tag: 'DOM · perspective · depth sort', label: 'Three planets orbiting a sun' },
+  { id: 'shader', name: 'Shader Orb',     hint: 'Your pointer is the light. Click to wobble.', tag: 'WebGL · domain-warped fbm', label: 'Iridescent shaded sphere' },
+  { id: 'globe',  name: 'Particle Globe', hint: 'Drag to spin with inertia. Hover to part the dots.', tag: 'Canvas 2D · fibonacci sphere', label: 'Rotating particle globe', drag: true },
+  { id: 'dial',   name: 'Dial',           hint: 'Drag around the ring, or focus it and use the arrow keys.', tag: 'conic-gradient · ARIA slider',
+    html: `<div class="dial" role="slider" tabindex="0" aria-label="Level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${DIAL.start}"><div class="track"></div><div class="glow"><div class="fill"></div></div><div class="knob"></div><output>${DIAL.start}</output></div>` },
+  { id: 'pond',   name: 'Pond',           hint: 'Click to drop, move to trail.', tag: 'Canvas 2D · additive blend', label: 'Ripples on a pond' },
+  { id: 'magnet', name: 'Magnetic Orb',   hint: 'Get close and it reaches for you, stretching as it moves.', tag: 'springs · squash/stretch · WAAPI',
+    html: '<button class="mag" aria-label="Magnetic orb"></button>' },
+  { id: 'halo',   name: 'Halo',           hint: 'Pointer shifts the rings in parallax. Click to pulse.', tag: '@property · conic masks', label: 'Spinning concentric color rings',
+    html: `<div class="halo">
+      <i style="--n:4;--h:280;--w:.6cqw;--d:23;--dir:reverse"></i>
+      <i style="--n:3;--h:330;--w:.9cqw;--d:17"></i>
+      <i style="--n:2;--h:20;--w:1.2cqw;--d:13;--dir:reverse"></i>
+      <i style="--n:1;--h:160;--w:1.5cqw;--d:11"></i>
+      <i style="--n:0;--h:200;--w:1.8cqw;--d:9;--dir:reverse"></i>
+      <b></b></div>` },
+];
+
+const TAU = Math.PI * 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const ease = (rate, dt) => 1 - Math.exp(-rate * dt); // frame-rate independent lerp factor
+
+// ==== CORE ====
+const loops = new Set();
+const io = new IntersectionObserver(es => es.forEach(e => e.target._loop.on = e.isIntersecting));
+function register(stage, tick) {
+  const l = { tick, on: false };
+  stage._loop = l; loops.add(l); io.observe(stage);
+}
+let last = performance.now(), clock = 0;
+requestAnimationFrame(function frame(now) {
+  const dt = Math.min((now - last) / 1000, .05);
+  last = now; clock += dt * MOTION;
+  for (const l of loops) if (l.on) l.tick(dt, clock);
+  requestAnimationFrame(frame);
+});
+
+function pointer(el) {
+  const p = { x: .5, y: .5, in: false, down: false };
+  const at = e => { const r = el.getBoundingClientRect(); p.x = (e.clientX - r.left) / r.width; p.y = (e.clientY - r.top) / r.height; };
+  el.addEventListener('pointermove', e => { at(e); p.in = true; });
+  el.addEventListener('pointerdown', e => { at(e); p.in = p.down = true; });
+  el.addEventListener('pointerleave', () => { if (!p.down) p.in = false; });
+  addEventListener('pointerup', () => p.down = false);
+  addEventListener('pointercancel', () => p.down = p.in = false);
+  return p;
+}
+
+function canvas2d(stage) {
+  const c = stage.appendChild(document.createElement('canvas'));
+  const s = { ctx: c.getContext('2d'), w: 0, h: 0 };
+  new ResizeObserver(() => {
+    const d = Math.min(devicePixelRatio, DPR_MAX);
+    s.w = stage.clientWidth; s.h = stage.clientHeight;
+    c.width = s.w * d; c.height = s.h * d;
+    s.ctx.setTransform(d, 0, 0, d, 0, 0);
+  }).observe(stage);
+  return s;
+}
+
+// ==== DEMOS ====
+function goo(stage) {
+  const G = GOO, p = pointer(stage);
+  const wrap = stage.appendChild(document.createElement('div'));
+  wrap.className = 'goo';
+  const blobs = Array.from({ length: G.count }, (_, i) => {
+    const f = i / (G.count - 1), el = wrap.appendChild(document.createElement('i'));
+    el.style.cssText = `--s:${lerp(G.size[0], G.size[1], f)};--h:${190 + i * 22}`;
+    return { el, x: .5, y: .5, vx: 0, vy: 0, k: lerp(G.stiff[0], G.stiff[1], f), r: i ? lerp(G.orbit[0], G.orbit[1], f) : 0, w: (i % 2 ? 1 : -1) * (.6 + f * 1.2), ph: i * 1.7 };
+  });
+  stage.addEventListener('pointerdown', () => blobs.forEach(b => {
+    const a = Math.random() * TAU;
+    b.vx += Math.cos(a) * G.burst; b.vy += Math.sin(a) * G.burst;
+  }));
+  let lx = .5, ly = .5;
+  register(stage, (dt, t) => {
+    const k = ease(8, dt);
+    lx = lerp(lx, p.in ? p.x : .5 + Math.cos(t * .5) * .2, k);
+    ly = lerp(ly, p.in ? p.y : .5 + Math.sin(t * .8) * .15, k);
+    for (const b of blobs) {
+      const tx = lx + Math.cos(t * b.w + b.ph) * b.r, ty = ly + Math.sin(t * b.w + b.ph) * b.r;
+      b.vx += ((tx - b.x) * b.k - b.vx * G.damp) * dt;
+      b.vy += ((ty - b.y) * b.k - b.vy * G.damp) * dt;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      b.el.style.translate = `${b.x * 100}cqw ${b.y * 100}cqh`;
+    }
+  });
+}
+
+function orbits(stage) {
+  const O = ORBITS, p = pointer(stage);
+  stage.innerHTML = `<div class="orbits"><svg viewBox="-50 -50 100 100">${O.planets.map(() => '<ellipse/>').join('')}</svg><div class="sun"></div></div>`;
+  const sys = stage.firstChild, rings = [...sys.querySelectorAll('ellipse')];
+  let hover = null, tilt = .32, roll = 0, speed = 1;
+  const ps = O.planets.map(([name, r, size, period, a, b], i) => {
+    const el = sys.appendChild(document.createElement('div'));
+    el.className = 'pl';
+    el.style.cssText = `--s:${size};--a:${a};--b:${b}`;
+    el.innerHTML = `<span>${name}</span>`;
+    el.addEventListener('pointerenter', () => hover = el);
+    el.addEventListener('pointerleave', () => hover = null);
+    return { el, r, period, th: i * 2.1, hs: 1 };
+  });
+  register(stage, dt => {
+    const k = ease(O.ease, dt);
+    tilt = lerp(tilt, p.in ? lerp(O.tilt[0], O.tilt[1], p.y) : .32, k);
+    roll = lerp(roll, p.in ? (p.x - .5) * 2 * O.roll : 0, k);
+    speed = lerp(speed, p.down ? O.rewind : hover ? O.hover : 1, k);
+    sys.style.rotate = roll + 'deg';
+    ps.forEach((o, i) => {
+      o.th += dt * MOTION * speed * TAU / o.period;
+      o.hs = lerp(o.hs, hover === o.el ? 1.3 : 1, k * 2);
+      const c = Math.cos(o.th), s = Math.sin(o.th), z = s * o.r, sc = O.persp / (O.persp - z) * o.hs;
+      o.el.style.transform = `translate(${c * o.r}cqw,${z * tilt}cqw) scale(${sc})`;
+      o.el.style.zIndex = 100 + Math.round(z);
+      o.el.style.setProperty('--lx', `${50 - c * 28}%`); // lit from the sun
+      o.el.style.setProperty('--ly', `${40 - s * tilt * 28}%`);
+      rings[i].setAttribute('rx', o.r);
+      rings[i].setAttribute('ry', o.r * tilt);
+    });
+  });
+}
+
+function shader(stage) {
+  const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  const FS = `precision highp float;
+uniform vec2 R;uniform float T;uniform vec2 M;uniform float P;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.03+7.1;a*=.5;}return v;}
+vec3 pal(float t){return .55+.45*cos(6.2832*(t+vec3(0.,.33,.67)));}
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.-R)/min(R.x,R.y);
+  float a=atan(uv.y,uv.x),d=length(uv),px=2./min(R.x,R.y);
+  float r=.72+P*.05*sin(a*5.+T*9.)+.008*sin(a*3.+T*1.3);
+  float m=1.-smoothstep(r-px*1.5,r,d);
+  vec3 glow=pal(T*.05+a*.08)*exp(-max(d-r,0.)*7.)*.45*(1.-m);
+  vec2 s=uv/r;float z=sqrt(max(1.-dot(s,s),0.));
+  vec3 N=vec3(s,z),L=normalize(vec3(M*1.2,1.));
+  vec2 q=vec2(atan(N.x,N.z)+T*.15,asin(clamp(N.y,-1.,1.)))*1.6;
+  vec2 w=vec2(fbm(q+T*.08),fbm(q+vec2(5.2,1.3)-T*.08));
+  float f=fbm(q+3.*w);
+  vec3 col=pal(f*1.4+dot(N,L)*.25+T*.03);
+  float dif=max(dot(N,L),0.),spe=pow(max(reflect(-L,N).z,0.),48.),fre=pow(1.-z,2.5);
+  col=min(col*(.18+.9*dif)+spe*.85+fre*pal(f+.5)*.9,1.);
+  gl_FragColor=vec4(col*m+glow,max(m,max(glow.r,max(glow.g,glow.b))));
+}`;
+  const c = stage.appendChild(document.createElement('canvas'));
+  const gl = c.getContext('webgl', { premultipliedAlpha: true });
+  if (!gl) { stage.classList.add('fallback'); return; }
+  const prog = gl.createProgram();
+  [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, FS]].forEach(([type, src]) => {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src); gl.compileShader(sh); gl.attachShader(prog, sh);
+  });
+  gl.bindAttribLocation(prog, 0, 'p');
+  gl.linkProgram(prog); gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW); // one oversized triangle
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const [uR, uT, uM, uP] = ['R', 'T', 'M', 'P'].map(n => gl.getUniformLocation(prog, n));
+  new ResizeObserver(() => {
+    const d = Math.min(devicePixelRatio, DPR_MAX);
+    c.width = stage.clientWidth * d; c.height = stage.clientHeight * d;
+    gl.viewport(0, 0, c.width, c.height);
+  }).observe(stage);
+
+  const p = pointer(stage);
+  let mx = 0, my = 0, pulse = 0;
+  stage.addEventListener('pointerdown', () => pulse = 1);
+  register(stage, (dt, t) => {
+    const k = ease(SHADER.ease, dt);
+    mx = lerp(mx, p.in ? (p.x - .5) * 2 : Math.cos(t * .4) * .6, k);
+    my = lerp(my, p.in ? (.5 - p.y) * 2 : Math.sin(t * .3) * .5 + .3, k);
+    pulse *= Math.exp(-SHADER.decay * dt);
+    gl.uniform2f(uR, c.width, c.height); gl.uniform1f(uT, t);
+    gl.uniform2f(uM, mx, my); gl.uniform1f(uP, pulse);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  });
+}
+
+function globe(stage) {
+  const G = GLOBE, s = canvas2d(stage), p = pointer(stage);
+  const pts = Array.from({ length: G.count }, (_, i) => {
+    const y = 1 - 2 * (i + .5) / G.count, r = Math.sqrt(1 - y * y), a = i * 2.399963; // golden angle
+    return [Math.cos(a) * r, y, Math.sin(a) * r];
+  });
+  let ry = 0, rx = .35, vy = G.spin, vx = 0, lx = 0, ly = 0, lt = 0;
+  stage.addEventListener('pointerdown', e => {
+    stage.setPointerCapture(e.pointerId);
+    lx = e.clientX; ly = e.clientY; lt = e.timeStamp; vx = vy = 0;
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!p.down) return;
+    const dx = (e.clientX - lx) * G.drag, dy = (e.clientY - ly) * G.drag, ds = Math.max((e.timeStamp - lt) / 1000, .001);
+    ry += dx; rx = clamp(rx + dy, -1.2, 1.2);
+    vy = lerp(vy, dx / ds, .4); vx = lerp(vx, dy / ds, .4);
+    lx = e.clientX; ly = e.clientY; lt = e.timeStamp;
+  });
+  register(stage, (dt, t) => {
+    if (!p.down) {
+      const k = ease(G.friction, dt);
+      vy = lerp(vy, G.spin * MOTION, k); vx = lerp(vx, 0, k);
+      ry += vy * dt; rx = clamp(rx + vx * dt, -1.2, 1.2);
+    }
+    const { ctx, w, h } = s;
+    if (!w) return;
+    const cx = w / 2, cy = h / 2, R = Math.min(w, h) * G.radius, rep = G.repel * w, dot = G.dot * Math.max(w / REF, .5);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.5);
+    g.addColorStop(0, 'hsl(230 90% 60% / .18)'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'lighter';
+    const cY = Math.cos(ry), sY = Math.sin(ry), cX = Math.cos(rx), sX = Math.sin(rx), mx = p.x * w, my = p.y * h;
+    for (const [x, y, z] of pts) {
+      const X = x * cY + z * sY, Z0 = z * cY - x * sY;
+      const Y = y * cX - Z0 * sX, Z = y * sX + Z0 * cX;
+      const k = 2.6 / (2.6 - Z), depth = (Z + 1) / 2;
+      let px = cx + X * R * k, py = cy - Y * R * k;
+      if (p.in) {
+        const dx = px - mx, dy = py - my, d = Math.hypot(dx, dy);
+        if (d > 0 && d < rep) { const f = (1 - d / rep) ** 2 * rep * .5 / d; px += dx * f; py += dy * f; }
+      }
+      ctx.fillStyle = `hsl(${200 + y * 100 + t * 20} 95% ${45 + depth * 25}% / ${.12 + depth * .88})`;
+      ctx.beginPath(); ctx.arc(px, py, dot * (.4 + depth) * k, 0, TAU); ctx.fill();
+    }
+  });
+}
+
+function dial(stage) {
+  const D = DIAL, el = stage.querySelector('.dial'), out = el.querySelector('output');
+  let target = D.start, v = target, vel = 0;
+  const set = n => { target = clamp(Math.round(n), 0, 100); el.setAttribute('aria-valuenow', target); };
+  const fromPointer = e => {
+    const r = el.getBoundingClientRect();
+    let a = Math.atan2(e.clientX - r.left - r.width / 2, r.top + r.height / 2 - e.clientY) * 180 / Math.PI;
+    if (Math.abs(a) > 135) a = target > 50 ? 135 : -135; // dead zone sticks to nearest end
+    set((a + 135) / 2.7);
+  };
+  el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); fromPointer(e); });
+  el.addEventListener('pointermove', e => { if (el.hasPointerCapture(e.pointerId)) fromPointer(e); });
+  el.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 10 : 1;
+    const map = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step, PageUp: 10, PageDown: -10, Home: -100, End: 100 };
+    if (e.key in map) { e.preventDefault(); set(target + map[e.key]); }
+  });
+  register(stage, dt => {
+    vel += ((target - v) * D.stiff - vel * D.damp) * dt; v += vel * dt;
+    el.style.setProperty('--v', clamp(v, 0, 100).toFixed(2));
+    out.textContent = Math.round(clamp(v, 0, 100));
+  });
+}
+
+function pond(stage) {
+  const P = POND, s = canvas2d(stage), p = pointer(stage), rings = [];
+  let hue = 180, lx = -1, ly = -1, rain = 0;
+  const drop = (x, y, big) => {
+    rings.push({ x, y, t: 0, h: hue, big });
+    hue = (hue + 29) % 360;
+    if (rings.length > P.max) rings.shift();
+  };
+  stage.addEventListener('pointerdown', () => drop(p.x, p.y, 1.6));
+  register(stage, dt => {
+    const { ctx, w, h } = s;
+    if (!w) return;
+    const u = Math.max(w / REF, .4); // px scale
+    if (p.in && Math.hypot(p.x - lx, p.y - ly) > P.trail) { drop(p.x, p.y, .5); lx = p.x; ly = p.y; }
+    if ((rain += dt * MOTION) > 1 / P.rain) { rain = 0; drop(.15 + Math.random() * .7, .15 + Math.random() * .7, .9); }
+    ctx.clearRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i], k = (r.t += dt) / (P.life * Math.sqrt(r.big));
+      if (k >= 1) { rings.splice(i, 1); continue; }
+      const x = r.x * w, y = r.y * h, fade = (1 - k) ** 2;
+      for (let e = 0; e < P.echoes; e++) {
+        const rad = (r.t - e * .14) * P.speed * w * r.big;
+        if (rad <= 0) continue;
+        ctx.strokeStyle = `hsl(${r.h + e * 24} 100% 65% / ${fade * (1 - e / P.echoes)})`;
+        ctx.lineWidth = ((1 - k) * 3 * r.big + .5) * u;
+        ctx.beginPath(); ctx.arc(x, y, rad, 0, TAU); ctx.stroke();
+      }
+      if (r.t < .25) { // splash
+        ctx.fillStyle = `hsl(${r.h} 100% 75% / ${1 - r.t / .25})`;
+        ctx.beginPath(); ctx.arc(x, y, (6 * r.big * (1 - r.t / .25) + 1) * u, 0, TAU); ctx.fill();
+      }
+    }
+  });
+}
+
+function magnet(stage) {
+  const M = MAGNET, b = stage.querySelector('.mag'), p = pointer(stage);
+  let x = 0, y = 0, vx = 0, vy = 0, sc = 1, sv = 0, hx = 35, hy = 30;
+  b.addEventListener('click', () => {
+    sv -= 5;
+    const w = stage.clientWidth, cx = w * (.5 + x), cy = stage.clientHeight * (.5 + y), u = w / REF;
+    for (let i = 0; i < M.sparks; i++) {
+      const s = stage.appendChild(document.createElement('span'));
+      const a = i / M.sparks * TAU + Math.random() * .4, d = w * (.24 + Math.random() * .16), z = (4 + Math.random() * 8) * u;
+      s.className = 'spark';
+      s.style.cssText = `width:${z}px;height:${z}px;margin:${-z / 2}px;color:hsl(${250 + Math.random() * 90} 100% 72%)`;
+      s.animate([
+        { transform: `translate(${cx}px,${cy}px) scale(1)`, opacity: 1 },
+        { transform: `translate(${cx + Math.cos(a) * d}px,${cy + Math.sin(a) * d}px) scale(0)`, opacity: 0 },
+      ], { duration: 650 + Math.random() * 450, easing: 'cubic-bezier(.15,.7,.3,1)' }).onfinish = () => s.remove();
+    }
+  });
+  register(stage, dt => {
+    const dx = p.x - .5, dy = p.y - .5, d = Math.hypot(dx, dy);
+    const f = p.in ? clamp((M.reach - d) / .08, 0, 1) * M.pull : 0;
+    vx += ((dx * f - x) * M.stiff - vx * M.damp) * dt;
+    vy += ((dy * f - y) * M.stiff - vy * M.damp) * dt;
+    x += vx * dt; y += vy * dt;
+    sv += (((p.down && f ? .9 : 1) - sc) * M.stiff - sv * M.damp * .6) * dt; sc += sv * dt; // jelly press
+    const sq = Math.min(Math.hypot(vx, vy) * M.squash, M.maxSquash), a = Math.atan2(vy, vx);
+    const k = ease(8, dt);
+    hx = lerp(hx, 35 + (p.in ? dx * 60 : 0), k);
+    hy = lerp(hy, 30 + (p.in ? dy * 60 : 0), k);
+    b.style.transform = `translate(${x * 100}cqw,${y * 100}cqh) rotate(${a}rad) scale(${sc * (1 + sq)},${sc * (1 - sq)}) rotate(${-a}rad)`;
+    b.style.setProperty('--hx', hx + '%');
+    b.style.setProperty('--hy', hy + '%');
+  });
+}
+
+function halo(stage) {
+  const H = HALO, el = stage.querySelector('.halo'), p = pointer(stage);
+  let s = 1, v = 0, px = 0, py = 0;
+  stage.addEventListener('pointerdown', () => v += H.kick);
+  register(stage, dt => {
+    const near = p.in ? 1 - Math.min(Math.hypot(p.x - .5, p.y - .5) * 2, 1) : 0;
+    v += ((1 + near * H.grow - s) * H.stiff - v * H.damp) * dt; s += v * dt;
+    const k = ease(5, dt);
+    px = lerp(px, p.in ? (p.x - .5) * 2 * H.parallax : 0, k);
+    py = lerp(py, p.in ? (p.y - .5) * 2 * H.parallax : 0, k);
+    el.style.setProperty('--spread', s.toFixed(3));
+    el.style.setProperty('--px', px.toFixed(3));
+    el.style.setProperty('--py', py.toFixed(3));
+  });
+}
+
+// ==== SHELL ====
+const DEMOS = { goo, orbits, shader, globe, dial, pond, magnet, halo };
+const viewer = document.getElementById('viewer'), rail = document.querySelector('.rail');
+const info = { h2: document.querySelector('.info h2'), p: document.querySelector('.info p'), tag: document.querySelector('.info .tag') };
+const views = {}; // viewer stages, mounted on first select
+
+function mount(item, thumb) {
+  const stage = document.createElement('div');
+  stage.className = 'stage' + (item.drag && !thumb ? ' drag' : '');
+  stage.innerHTML = item.html ?? '';
+  if (thumb) { stage.inert = true; stage.setAttribute('aria-hidden', 'true'); }
+  else if (item.label) { stage.setAttribute('role', 'img'); stage.setAttribute('aria-label', item.label); }
+  DEMOS[item.id](stage);
+  return stage;
+}
+
+const tabs = CATALOG.map(item => {
+  const card = rail.appendChild(document.createElement('div'));
+  card.className = 'card';
+  card.append(mount(item, true));
+  const tab = card.appendChild(document.createElement('button'));
+  Object.assign(tab, { id: `tab-${item.id}`, textContent: item.name, tabIndex: -1 });
+  tab.setAttribute('role', 'tab');
+  tab.setAttribute('aria-controls', 'viewer');
+  tab.dataset.id = item.id;
+  tab.addEventListener('click', () => select(item.id));
+  return tab;
+});
+
+function select(id, focus = false) {
+  const item = CATALOG.find(c => c.id === id) ?? CATALOG[0];
+  views[item.id] ??= viewer.appendChild(mount(item, false));
+  for (const [k, el] of Object.entries(views)) el.hidden = k !== item.id; // hidden stages pause via IntersectionObserver
+  for (const t of tabs) {
+    const on = t.dataset.id === item.id;
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+    if (on) {
+      viewer.setAttribute('aria-labelledby', t.id);
+      t.parentElement.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+      if (focus) t.focus();
+    }
+  }
+  info.h2.textContent = item.name; info.p.textContent = item.hint; info.tag.textContent = item.tag;
+  history.replaceState(null, '', '#' + item.id);
+}
+
+rail.addEventListener('keydown', e => {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  const i = tabs.indexOf(document.activeElement);
+  if (!step || i < 0) return;
+  e.preventDefault();
+  select(tabs[(i + step + tabs.length) % tabs.length].dataset.id, true);
+});
+
+select(location.hash.slice(1));
+</script>
+</body>
+</html>

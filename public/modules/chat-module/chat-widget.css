@@ -1133,22 +1133,16 @@ from { opacity: 0; transform: translateY(50vh) scale(.01); filter:brightness(-10
     font-weight: 200;
     border: none;
     background: none;
-    box-shadow: none;
     font-size: 30px;
     opacity: .7;
-    color: rgba(0,255,188,.8);
-    text-shadow: 0 90px 3px white;
+    position:absolute;
+color:transparent;    text-shadow: 0 1px 3px white;
 }
 
 
 .cw-collapse-btn:hover {
-transition:all .3s;
-transform-style:preserve-3d;
-transform-origin:center center;
-background:white;}
+    color: rgba(0, 255, 188, .8);}
 
-.cw-collapse-btn:active {
-background:white;}
 
 
 /* Settings container */
