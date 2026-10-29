@@ -78,3 +78,5 @@ public/assets/
 
 # Auto Claude data directory
 .auto-claude/
+
+.history/
